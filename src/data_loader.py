@@ -1,7 +1,7 @@
 import pandas as pd
 import os
 
-DEFAULT_DATA_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'GRCh38_latest_rna_summary.csv')
+DEFAULT_DATA_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'GRCh38_latest_rna_summary.csv')
 
 def load_gene_metadata(file_path=DEFAULT_DATA_PATH):
     """
