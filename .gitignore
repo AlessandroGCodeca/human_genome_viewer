@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+human_genome_venv/
+venv/
+.env
+
+# Data (Metadata is okay, but large files should be excluded if they were raw data.
+# The summary CSVs are relatively small (~20MB max), so we can include them or exclude them.
+# Given the user context implies a reproducible repo, often data is excluded. 
+# However, the user might want a working repo out of the box. 
+# The user downloaded data from Kaggle. I will exclude the data directory and instruct to download it.
+# Actually, the user has 'data/' with CSVs.  
+# Let's exclude the data directory to be safe and avoid large commits, 
+# but I'll add a note in README.
+data/
+
+# Streamlit
+.streamlit/
+
+# OS
+.DS_Store

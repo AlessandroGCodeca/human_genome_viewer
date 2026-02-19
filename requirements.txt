@@ -1,0 +1,6 @@
+streamlit
+pandas
+biopython
+altair
+matplotlib
+seaborn
