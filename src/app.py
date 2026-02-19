@@ -6,9 +6,16 @@ from gc_content import calculate_gc_content
 from kmer_frequency import calculate_kmer_frequency, get_most_common_kmers
 from data_loader import load_gene_metadata, search_genes
 from analysis_advanced import translate_dna, calculate_shannon_entropy, rolling_entropy, find_motif
+from analysis_protein import calculate_protein_properties
+from analysis_dna import calculate_gc_skew, calculate_codon_usage
 
-# Set page config
-st.set_page_config(page_title="Human Genome Analysis", layout="wide")
+# --- Page Config ---
+st.set_page_config(
+    page_title="Human Genome Analysis",
+    layout="wide",
+    initial_sidebar_state="expanded",
+    page_icon="🧬"
+)
 
 # --- Caching ---
 @st.cache_data
@@ -20,155 +27,205 @@ def fetch_sequence_cached(accession_id):
     fetcher = SequenceFetcher()
     return fetcher.fetch_sequence(accession_id)
 
-# --- Title ---
-st.title("Human Genome Analysis Dashboard")
-st.markdown("Analyze molecular sequences from the human genome.")
+@st.cache_data
+def get_gc_skew(seq, window, step):
+    return calculate_gc_skew(seq, window, step)
+
+@st.cache_data
+def get_codon_usage(seq):
+    return calculate_codon_usage(seq)
+
+# --- Main Layout ---
+
+# Title Area
+col_title, col_logo = st.columns([4, 1])
+with col_title:
+    st.title("🧬 Human Genome Analysis")
+    st.markdown("_Explore and analyze DNA sequences with advanced bioinformatics tools._")
 
 # --- Sidebar ---
-st.sidebar.header("Configuration")
+st.sidebar.header("🔍 Gene Selection")
 
-# Search Mode Selection
-search_mode = st.sidebar.radio("Input Method", ["Search by Gene Name", "Enter Accession ID"])
+search_mode = st.sidebar.radio("Search Method", ["Search by Name", "Accession ID"], horizontal=True)
 
 selected_id = ""
 
-if search_mode == "Search by Gene Name":
-    # Load metadata (cached)
+if search_mode == "Search by Name":
     df_genes = get_gene_metadata()
-    
     if df_genes is not None:
-        query = st.sidebar.text_input("Search Gene (e.g. 'Insulin', 'BRCA1')", help="Case-insensitive search in descriptions")
-        
+        query = st.sidebar.text_input("Gene Name", placeholder="e.g. Insulin, TP53")
         if query:
             results = search_genes(df_genes, query)
             if not results.empty:
-                # Create detailed options for the selectbox
-                options = results.apply(lambda x: f"{x['ID']} | {x['Description'][:50]}...", axis=1).tolist()
-                selected_option = st.sidebar.selectbox("Select Result", options)
-                # Extract ID from selection
+                options = results.apply(lambda x: f"{x['ID']} | {x['Description'][:40]}...", axis=1).tolist()
+                selected_option = st.sidebar.selectbox("Results", options)
                 selected_id = selected_option.split(" | ")[0]
             else:
                 st.sidebar.warning("No matches found.")
-        else:
-            st.sidebar.info("Enter a search term above.")
     else:
-        st.sidebar.error("Could not load gene metadata.")
-        
-else: # Direct ID Input
-    selected_id = st.sidebar.text_input("Accession ID", value="NM_000014.6", help="Enter a genbank accession ID (e.g., NM_...)")
+        st.sidebar.error("Metadata not available.")
+else:
+    selected_id = st.sidebar.text_input("Accession ID", value="NM_000014.6")
 
+st.sidebar.markdown("---")
+st.sidebar.header("⚙️ Analysis Settings")
+k_mer_len = st.sidebar.slider("K-mer Length", 1, 6, 3)
+window_size = st.sidebar.slider("Rolling Window (bp)", 50, 500, 100, step=50)
 
-fetch_btn = st.sidebar.button("Fetch and Analyze")
+fetch_btn = st.sidebar.button("🚀 Analyze Sequence", type="primary")
 
-# --- Main Area ---
+# --- Main Content ---
 if fetch_btn and selected_id:
-    with st.spinner(f"Fetching {selected_id}..."):
-        # Use cached fetcher
+    with st.spinner(f"Fetching sequence data for {selected_id}..."):
         record = fetch_sequence_cached(selected_id)
-        
+
     if record:
-        st.success(f"Successfully fetched {selected_id}")
-        st.markdown(f"**Description:** {record.description}")
-        
-        # Tabs for different analyses
-        tab1, tab2, tab3, tab4 = st.tabs(["Overview", "K-mer Analysis", "Translation", "Advanced Analysis"])
-        
-        with tab1:
-            st.header("Overview")
-            col1, col2 = st.columns(2)
+        # Summary Box
+        st.success(f"Loaded: **{record.id}**")
+        with st.expander("📝 Sequence Description & Raw Data", expanded=True):
+            st.markdown(f"**Description:** {record.description}")
+            st.text_area("Raw Sequence (First 500bp)", str(record.seq)[:500] + "...", height=100)
+
+        # Tabs
+        tabs = st.tabs([
+            "📊 Overview", 
+            "🧬 DNA Structure", 
+            "🦠 K-mers", 
+            "🥩 Protein Analysis", 
+            "🔎 Motifs & Entropy"
+        ])
+
+        # Tab 1: Overview
+        with tabs[0]:
+            col1, col2, col3 = st.columns(3)
             with col1:
-                st.metric("Length (bp)", len(record.seq))
-                
-            # GC Content
-            gc_content = calculate_gc_content(record.seq)
+                st.metric("Sequence Length", f"{len(record.seq):,} bp")
+            
+            gc = calculate_gc_content(record.seq)
             with col2:
-                st.metric("GC Content", f"{gc_content:.2f}%")
-                st.progress(gc_content / 100.0)
-                
-            # Sequence Viewer
-            st.subheader("Sequence Preview (First 1000 bp)")
-            st.text_area("DNA Sequence", str(record.seq[:1000]), height=200)
-
-        with tab2:
-            st.header("K-mer Frequency Analysis")
-            k_col1, k_col2 = st.columns([1, 3])
+                st.metric("GC Content", f"{gc:.2f}%")
             
-            with k_col1:
-                k = st.slider("Select K-mer length", min_value=1, max_value=6, value=3)
-                top_n = st.slider("Show top N K-mers", min_value=5, max_value=50, value=10)
-
-            kmers = calculate_kmer_frequency(record.seq, k)
-            top_kmers = get_most_common_kmers(kmers, top_n)
+            # Simple Composition Chart
+            bases = {'A': record.seq.count('A'), 'T': record.seq.count('T'), 
+                     'G': record.seq.count('G'), 'C': record.seq.count('C')}
+            df_bases = pd.DataFrame(list(bases.items()), columns=['Base', 'Count'])
             
-            with k_col2:
-                if top_kmers:
-                    df_kmers = pd.DataFrame(top_kmers, columns=['K-mer', 'Count'])
-                    
-                    # Altair Chart
-                    chart = alt.Chart(df_kmers).mark_bar().encode(
-                        x=alt.X('K-mer', sort='-y'),
-                        y='Count',
-                        tooltip=['K-mer', 'Count']
-                    ).properties(title=f"Top {top_n} {k}-mers")
-                    
-                    st.altair_chart(chart, use_container_width=True)
-                    
-                    with st.expander("Show raw K-mer counts"):
-                        st.write(df_kmers)
-                else:
-                    st.warning("No K-mers found.")
+            chart_base = alt.Chart(df_bases).mark_arc(innerRadius=50).encode(
+                theta='Count',
+                color=alt.Color('Base', scale=alt.Scale(domain=['A', 'T', 'G', 'C'], range=['#FF9AA2', '#B5EAD7', '#FFDAC1', '#C7CEEA'])),
+                tooltip=['Base', 'Count']
+            ).properties(title="Base Composition")
+            st.altair_chart(chart_base, use_container_width=True)
 
-        with tab3:
-            st.header("Sequence Translation (DNA -> Protein)")
+        # Tab 2: DNA Structure (GC Skew & Codon Usage)
+        with tabs[1]:
+            st.subheader("GC Skew Analysis")
+            st.caption(f"Rolling GC Skew (Window={window_size}) to identify replication origins or biases.")
+            
+            skew_data = get_gc_skew(record.seq, window_size, step=20)
+            df_skew = pd.DataFrame(skew_data)
+            
+            if not df_skew.empty:
+                chart_skew = alt.Chart(df_skew).mark_area(
+                    line={'color':'teal'},
+                    color=alt.Gradient(
+                        gradient='linear',
+                        stops=[alt.GradientStop(color='white', offset=0),
+                               alt.GradientStop(color='teal', offset=1)],
+                        x1=1, x2=1, y1=1, y2=0
+                    )
+                ).encode(
+                    x=alt.X('Position', title='Position (bp)'),
+                    y=alt.Y('GC_Skew', title='GC Skew'),
+                    tooltip=['Position', 'GC_Skew']
+                ).properties(height=300)
+                st.altair_chart(chart_skew, use_container_width=True)
+            
+            st.divider()
+            st.subheader("Codon Usage Bias")
+            codon_data = get_codon_usage(record.seq)
+            df_codons = pd.DataFrame(codon_data)
+            
+            with st.expander("View Codon Usage Table"):
+                st.dataframe(df_codons, use_container_width=True)
+
+        # Tab 3: K-mers
+        with tabs[2]:
+            st.subheader(f"{k_mer_len}-mer Frequency Analysis")
+            kmers = calculate_kmer_frequency(record.seq, k_mer_len)
+            top_kmers = get_most_common_kmers(kmers, 15)
+            
+            if top_kmers:
+                df_kmers = pd.DataFrame(top_kmers, columns=['K-mer', 'Count'])
+                chart_kmers = alt.Chart(df_kmers).mark_bar().encode(
+                    x=alt.X('K-mer', sort='-y'),
+                    y='Count',
+                    color=alt.Color('Count', scale=alt.Scale(scheme='tealblues')), # Changed scheme
+                    tooltip=['K-mer', 'Count']
+                )
+                st.altair_chart(chart_kmers, use_container_width=True)
+            else:
+                st.info("No K-mers found.")
+
+        # Tab 4: Protein Analysis
+        with tabs[3]:
+            st.subheader("Translation & Physicochemical Properties")
             protein_seq = translate_dna(record.seq)
             
-            st.metric("Protein Length (aa)", len(protein_seq))
-            st.text_area("Protein Sequence", protein_seq, height=300)
-            st.caption("*Note: Translation uses standard genetic code. '*' indicates stop codon.*")
+            st.text_area("Protein Sequence", str(protein_seq), height=150)
+            
+            if len(protein_seq) > 0:
+                props = calculate_protein_properties(protein_seq)
+                
+                p_col1, p_col2, p_col3, p_col4 = st.columns(4)
+                p_col1.metric("Mol. Weight", f"{props.get('Molecular Weight',0):.0f} Da")
+                p_col2.metric("Isoelectric Pt (pI)", f"{props.get('Isoelectric Point',0):.2f}")
+                p_col3.metric("Instability Idx", f"{props.get('Instability Index',0):.2f}")
+                p_col4.metric("Aromaticity", f"{props.get('Aromaticity',0):.2f}")
+                
+                if props.get('Instability Index', 0) > 40:
+                    st.warning("⚠️ Protein is classified as **unstable** (Index > 40).")
+                else:
+                    st.success("✅ Protein is classified as **stable**.")
 
-        with tab4:
-            st.header("Advanced Analysis")
+        # Tab 5: Advanced (Entropy & Motifs)
+        with tabs[4]:
+            col_ent, col_mot = st.columns(2)
             
-            # Shannon Entropy
-            st.subheader("Sequence Complexity (Shannon Entropy)")
-            entropy = calculate_shannon_entropy(record.seq) # Corrected function name
-            st.metric("Global Entropy (bits)", f"{entropy:.4f}")
-            st.caption("Higher entropy indicates more randomness (complex sequence). Max for DNA is 2.0 bits.")
-            
-            st.subheader("Rolling Entropy")
-            window_size = st.slider("Window Size", 50, 500, 100)
-            step_size = st.slider("Step Size", 10, 100, 20)
-            
-            if st.button("Calculate Rolling Entropy"):
-                df_entropy = rolling_entropy(record.seq, window_size, step_size)
-                if not df_entropy.empty:
-                    chart_ent = alt.Chart(df_entropy).mark_line().encode(
+            with col_ent:
+                st.subheader("Entropy Analysis")
+                entropy = calculate_shannon_entropy(record.seq)
+                st.metric("Global Shannon Entropy", f"{entropy:.4f} bits")
+                
+                if st.button("Calculate Rolling Entropy"):
+                    df_ent = rolling_entropy(record.seq, window_size, 20)
+                    chart_ent = alt.Chart(df_ent).mark_line(color='#FFA07A').encode(
                         x='Position',
-                        y=alt.Y('Entropy', scale=alt.Scale(domain=[0, 2])),
-                        tooltip=['Position', 'Entropy']
-                    ).properties(title=f"Rolling Entropy (Window={window_size})")
+                        y='Entropy'
+                    )
                     st.altair_chart(chart_ent, use_container_width=True)
-                else:
-                    st.warning("Sequence too short for this window size.")
-            
-            st.subheader("Motif Search")
-            motif = st.text_input("Enter Motif to Search (e.g., GAATTC)", "GAATTC")
-            if motif:
-                indices = find_motif(record.seq, motif)
-                if indices:
-                    st.success(f"Found {len(indices)} occurrences of '{motif}'")
-                    st.write(f"Positions (0-based): {indices[:50]} {'...' if len(indices) > 50 else ''}")
-                else:
-                    st.warning(f"Motif '{motif}' not found.")
+
+            with col_mot:
+                st.subheader("Motif Search")
+                motif_q = st.text_input("Find Motif (DNA)", "TATA")
+                if motif_q:
+                    locs = find_motif(record.seq, motif_q)
+                    if locs:
+                        st.success(f"Found {len(locs)} matches.")
+                        st.write(f"First 10 positions: {locs[:10]}")
+                    else:
+                        st.warning("Not found.")
 
     else:
-        st.error(f"Failed to fetch sequence for ID: {selected_id}. Please check the ID and try again.")
-elif fetch_btn and not selected_id:
-    st.warning("Please select a sequence ID first.")
-else:
-    st.info("Use the sidebar to search for a gene or enter an ID to start analysis.")
+        st.error(f"Could not fetch data for ID: {selected_id}")
+
+elif not fetch_btn:
+    # Landing Page Info
+    st.info("👈 Please select a gene or enter an Accession ID in the sidebar to start.")
     
-    st.markdown("---")
-    st.markdown("### About")
-    st.markdown("This dashboard fetches sequences from NCBI and performs basic analysis.")
-    st.markdown("**New:** Search by gene name, view translations, and analyze sequence entropy!")
+    st.markdown("""
+    ### Features
+    - **Protein Analysis**: Molecular weight, pI, and stability prediction.
+    - **DNA Structure**: GC Skew visualization for detecting replication origins.
+    - **Interactive Plots**: Zoomable charts for K-mers and entropy.
+    """)
