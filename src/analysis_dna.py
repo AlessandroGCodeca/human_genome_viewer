@@ -1,4 +1,3 @@
-from Bio.SeqUtils import GC
 from collections import Counter
 
 def calculate_gc_skew(sequence, window_size=100, step_size=20):
