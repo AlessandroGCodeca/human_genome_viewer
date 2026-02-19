@@ -15,13 +15,8 @@ from analysis_dna import calculate_gc_skew, calculate_codon_usage
 from languages import TRANSLATIONS
 from disease_data import get_disease_variants
 from structure_viewer import render_pdb
-# --- Phase 2 & 3 Modules ---
-from languages import TRANSLATIONS
-from disease_data import get_disease_variants
-from structure_viewer import render_pdb
 from simulator import MutationSimulator
 from alignment import perform_pairwise_alignment
-from ai_chat import AIGeneAssistant # Phase 4
 
 # --- Page Config ---
 st.set_page_config(
@@ -141,11 +136,10 @@ if fetch_btn and selected_id:
         tabs = st.tabs([
             t('tab_overview'), 
             t('tab_dna'), 
-            t('tab_3d'),      
-            t('tab_mutation'), 
-            t('tab_align'),    
+            t('tab_3d'),      # New
+            t('tab_mutation'), # New
+            t('tab_align'),    # New
             t('tab_disease'),
-            t('tab_ai'), # Phase 4
             t('tab_advanced')
         ])
 
@@ -309,75 +303,11 @@ if fetch_btn and selected_id:
                 
                 st.altair_chart(base_chart, use_container_width=True)
                 
-                # Population Genetics (Phase 4)
-                st.divider()
-                st.subheader(t('allele_freq'))
-                
-                # Select a variant to show frequencies for
-                variant_options = [f"{v['disease']} ({v['ref']}>{v['alt']} @ {v['pos']})" for v in variants]
-                selected_var_idx = st.selectbox(t('variant'), range(len(variants)), format_func=lambda x: variant_options[x], key='pop_gen_select')
-                
-                selected_var = variants[selected_var_idx]
-                if 'frequencies' in selected_var:
-                    freqs = selected_var['frequencies']
-                    # Localize population names
-                    pop_names = {
-                        'AFR': t('pop_afr'), 'AMR': t('pop_amr'), 
-                        'EAS': t('pop_eas'), 'EUR': t('pop_eur'), 
-                        'SAS': t('pop_sas')
-                    }
-                    
-                    df_freq = pd.DataFrame([
-                        {'Population': pop_names.get(k, k), 'Frequency': v} 
-                        for k, v in freqs.items()
-                    ])
-                    
-                    chart_freq = alt.Chart(df_freq).mark_bar().encode(
-                        x=alt.X('Population', sort='-y'),
-                        y=alt.Y('Frequency'),
-                        color=alt.Color('Population', legend=None),
-                        tooltip=['Population', 'Frequency']
-                    ).properties(height=300)
-                    
-                    st.altair_chart(chart_freq, use_container_width=True)
-                else:
-                    st.info("No population frequency data for this variant.")
+            else:
+                st.warning(f"No mock disease data available for gene {record.id}. Try searching for 'Insulin' (NM_000014).")
 
-        # Tab 7: AI Assistant (Phase 4)
-        with tabs[6]:
-            st.subheader(t('tab_ai'))
-            st.write(t('ai_intro'))
-            
-            ai = AIGeneAssistant()
-            
-            # Initialize chat history
-            if "messages" not in st.session_state:
-                st.session_state.messages = []
-                # Welcome message
-                st.session_state.messages.append({"role": "assistant", "content": t('ai_welcome')})
-
-            # Display chat messages
-            for message in st.session_state.messages:
-                with st.chat_message(message["role"]):
-                    st.markdown(message["content"])
-
-            # Chat input
-            if prompt := st.chat_input(t('ai_placeholder')):
-                # Add user message
-                st.session_state.messages.append({"role": "user", "content": prompt})
-                with st.chat_message("user"):
-                    st.markdown(prompt)
-
-                # Generate AI response
-                response = ai.get_response(prompt, record.id)
-                
-                # Add assistant message
-                st.session_state.messages.append({"role": "assistant", "content": response})
-                with st.chat_message("assistant"):
-                    st.markdown(response)
-
-        # Tab 8: Advanced
-        with tabs[7]: # Shifted index
+        # Tab 7: Advanced
+        with tabs[6]: # Shifted index
             col_ent, col_mot = st.columns(2)
             # ... (Existing Advanced content)
             with col_ent:
