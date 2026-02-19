@@ -11,9 +11,12 @@ from analysis_advanced import translate_dna, calculate_shannon_entropy, rolling_
 from analysis_protein import calculate_protein_properties
 from analysis_dna import calculate_gc_skew, calculate_codon_usage
 
-# --- New Modules for Phase 2 ---
+# --- Phase 2 & 3 Modules ---
 from languages import TRANSLATIONS
 from disease_data import get_disease_variants
+from structure_viewer import render_pdb
+from simulator import MutationSimulator
+from alignment import perform_pairwise_alignment
 
 # --- Page Config ---
 st.set_page_config(
@@ -24,7 +27,6 @@ st.set_page_config(
 )
 
 # --- Caching ---
-@st.cache_data(show_spinner=False)
 @st.cache_data(show_spinner=False)
 def get_gene_metadata_v2():
     try:
@@ -134,10 +136,11 @@ if fetch_btn and selected_id:
         tabs = st.tabs([
             t('tab_overview'), 
             t('tab_dna'), 
-            t('tab_kmers'), 
-            t('tab_protein'), 
-            t('tab_advanced'),
-            t('tab_disease') # New Tab
+            t('tab_3d'),      # New
+            t('tab_mutation'), # New
+            t('tab_align'),    # New
+            t('tab_disease'),
+            t('tab_advanced')
         ])
 
         # Tab 1: Overview
@@ -194,74 +197,80 @@ if fetch_btn and selected_id:
             with st.expander(t('codon_table')):
                 st.dataframe(df_codons, use_container_width=True)
 
-        # Tab 3: K-mers
+        # Tab 3: 3D Structure (New)
         with tabs[2]:
-            st.subheader(f"{k_mer_len}{t('kmer_freq')}")
-            kmers = calculate_kmer_frequency(record.seq, k_mer_len)
-            top_kmers = get_most_common_kmers(kmers, 15)
+            st.subheader(t('tab_3d'))
             
-            if top_kmers:
-                df_kmers = pd.DataFrame(top_kmers, columns=['K-mer', 'Count'])
-                chart_kmers = alt.Chart(df_kmers).mark_bar().encode(
-                    x=alt.X('K-mer', sort='-y'),
-                    y='Count',
-                    color='Count',
-                    tooltip=['K-mer', 'Count']
-                )
-                st.altair_chart(chart_kmers, use_container_width=True)
-            else:
-                st.info(t('no_kmers'))
+            col_pdb, col_viewer = st.columns([1, 4])
+            with col_pdb:
+                pdb_id = st.text_input(t('pdb_input'), "1TRZ")
+                render = st.button(t('render_3d'))
+                
+            with col_viewer:
+                if render and pdb_id:
+                    # from stmol import showmol
+                    # view = render_pdb(pdb_id)
+                    # showmol(view, height=500, width=800)
+                    try:
+                        from stmol import showmol
+                        view = render_pdb(pdb_id)
+                        showmol(view, height=500, width=800)
+                    except ImportError:
+                        st.error("Please install 'stmol' and 'py3Dmol' to view 3D structures.")
+                    except Exception as e:
+                         st.error(f"Error rendering PDB: {e}")
 
-        # Tab 4: Protein Analysis
+        # Tab 4: Mutation Lab (New)
         with tabs[3]:
-            st.subheader(t('trans_props'))
-            protein_seq = translate_dna(record.seq)
+            st.subheader(t('tab_mutation'))
+            st.write(t('mutation_intro'))
             
-            st.text_area(t('prot_seq'), str(protein_seq), height=150)
+            sim = MutationSimulator(record.seq)
             
-            if len(protein_seq) > 0:
-                props = calculate_protein_properties(protein_seq)
+            # Editable text area initialized with original sequence
+            user_seq = st.text_area("Sequence Editor", str(record.seq), height=150)
+            
+            if st.button(t('simulate_btn')):
+                sim.mutated_dna = user_seq.replace("\n", "").replace(" ", "").upper()
+                res = sim.compare_protein_properties()
                 
-                p_col1, p_col2, p_col3, p_col4 = st.columns(4)
-                p_col1.metric(t('mol_weight'), f"{props.get('Molecular Weight',0):.0f} Da")
-                p_col2.metric(t('isoelectric'), f"{props.get('Isoelectric Point',0):.2f}")
-                p_col3.metric(t('instability'), f"{props.get('Instability Index',0):.2f}")
-                p_col4.metric(t('aromaticity'), f"{props.get('Aromaticity',0):.2f}")
+                c1, c2 = st.columns(2)
+                with c1:
+                    st.markdown(f"**{t('original')}**")
+                    st.code(res['Protein_Original'])
+                with c2:
+                    st.markdown(f"**{t('mutated')}**")
+                    st.code(res['Protein_Mutated'])
                 
-                if props.get('Instability Index', 0) > 40:
-                    st.warning(t('unstable'))
+                if res['Is_Silent']:
+                    st.info(t('silent_mutation'))
+                elif res['Stop_Codon_Introduced']:
+                    st.warning(t('stop_codon'))
+                    
+                st.subheader(t('protein_diff'))
+                if res['Properties_Comparison']:
+                    st.table(pd.DataFrame(res['Properties_Comparison']).T)
                 else:
-                    st.success(t('stable'))
+                    st.write("No significant property changes detected.")
 
-        # Tab 5: Advanced
+        # Tab 5: Alignment (New)
         with tabs[4]:
-            col_ent, col_mot = st.columns(2)
+            st.subheader(t('tab_align'))
+            st.write(t('align_intro'))
             
-            with col_ent:
-                st.subheader(t('entropy'))
-                entropy = calculate_shannon_entropy(record.seq)
-                st.metric(t('global_entropy'), f"{entropy:.4f} bits")
+            seq1_input = st.text_area(t('seq1'), str(record.seq)[:200], height=100)
+            seq2_input = st.text_area(t('seq2'), str(record.seq)[:200], height=100)
+            
+            if st.button(t('align_btn')):
+                res = perform_pairwise_alignment(
+                    seq1_input.replace("\n",""), 
+                    seq2_input.replace("\n","")
+                )
+                st.metric(t('alignment_score'), f"{res['score']:.1f}")
                 
-                if st.button(t('calc_rolling')):
-                    df_ent = rolling_entropy(record.seq, window_size, 20)
-                    chart_ent = alt.Chart(df_ent).mark_line(color='#FFA07A').encode(
-                        x='Position',
-                        y='Entropy'
-                    )
-                    st.altair_chart(chart_ent, use_container_width=True)
+                st.text(f"Best Match:\n{res['alignment_str']}")
 
-            with col_mot:
-                st.subheader(t('motif_search'))
-                motif_q = st.text_input(t('find_motif'), "TATA")
-                if motif_q:
-                    locs = find_motif(record.seq, motif_q)
-                    if locs:
-                        st.success(t('found_matches').format(len(locs)))
-                        st.write(f"Positions: {locs[:10]}...")
-                    else:
-                        st.warning(t('not_found'))
-                        
-        # Tab 6: Disease Associations (New)
+        # Tab 6: Disease Associations
         with tabs[5]:
             st.subheader(t('disease_map'))
             st.info(t('disease_desc'))
@@ -296,6 +305,34 @@ if fetch_btn and selected_id:
                 
             else:
                 st.warning(f"No mock disease data available for gene {record.id}. Try searching for 'Insulin' (NM_000014).")
+
+        # Tab 7: Advanced
+        with tabs[6]: # Shifted index
+            col_ent, col_mot = st.columns(2)
+            # ... (Existing Advanced content)
+            with col_ent:
+                st.subheader(t('entropy'))
+                entropy = calculate_shannon_entropy(record.seq)
+                st.metric(t('global_entropy'), f"{entropy:.4f} bits")
+                
+                if st.button(t('calc_rolling')):
+                    df_ent = rolling_entropy(record.seq, window_size, 20)
+                    chart_ent = alt.Chart(df_ent).mark_line(color='#FFA07A').encode(
+                        x='Position',
+                        y='Entropy'
+                    )
+                    st.altair_chart(chart_ent, use_container_width=True)
+
+            with col_mot:
+                st.subheader(t('motif_search'))
+                motif_q = st.text_input(t('find_motif'), "TATA")
+                if motif_q:
+                    locs = find_motif(record.seq, motif_q)
+                    if locs:
+                        st.success(t('found_matches').format(len(locs)))
+                        st.write(f"Positions: {locs[:10]}...")
+                    else:
+                        st.warning(t('not_found'))
 
     else:
         st.error(f"{t('error_fetch')} {selected_id}")

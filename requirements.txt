@@ -4,3 +4,5 @@ biopython
 altair
 matplotlib
 seaborn
+stmol
+py3Dmol
