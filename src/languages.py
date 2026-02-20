@@ -187,7 +187,11 @@ TRANSLATIONS = {
         'pop_afr': "Africa (AFR)",
         'pop_amr': "Americhe (AMR)",
         'pop_sas': "Sud Asia (SAS)",
-        'freq_desc': "Note sulla Frequenza"
+        'freq_desc': "Note sulla Frequenza",
+        'msa_input_desc': "Inserisci sequenze in formato FASTA (minimo 3 per l\'albero).",
+        'generate_tree_btn': "Genera Albero Filogenetico",
+        'phylogenetic_tree': "Albero Filogenetico",
+        'distance_matrix': "Matrice delle Distanze"
     },
     'SK': {
         'title': "🧬 Analýza Ľudského Genómu",
@@ -282,6 +286,11 @@ TRANSLATIONS = {
         'pop_afr': "Afrika (AFR)",
         'pop_amr': "Ameriky (AMR)",
         'pop_sas': "Južná Ázia (SAS)",
-        'freq_desc': "Poznámky k Frekvencii"
+        'freq_desc': "Poznámky k Frekvencii",
+        'msa_input_desc': "Zadajte sekvencie vo formáte FASTA (minimálne 3 pre strom).",
+        'generate_tree_btn': "Vygenerovať Fylogenetický Strom",
+        'phylogenetic_tree': "Fylogenetický Strom",
+        'distance_matrix': "Matica Vzdialeností"
     }
 }
+

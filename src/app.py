@@ -260,17 +260,44 @@ if fetch_btn and selected_id:
             st.subheader(t('tab_align'))
             st.write(t('align_intro'))
             
-            seq1_input = st.text_area(t('seq1'), str(record.seq)[:200], height=100)
-            seq2_input = st.text_area(t('seq2'), str(record.seq)[:200], height=100)
+            st.markdown(f"**{t('msa_input_desc')}**")
             
-            if st.button(t('align_btn')):
-                res = perform_pairwise_alignment(
-                    seq1_input.replace("\n",""), 
-                    seq2_input.replace("\n","")
-                )
-                st.metric(t('alignment_score'), f"{res['score']:.1f}")
+            # Default example sequences for the tree
+            default_fasta = f">Selected_{record.id}\n{str(record.seq)}\n>Variant_1\n{str(record.seq)[:400] + 'TGAC' + str(record.seq)[404:]}\n>Variant_2\n{str(record.seq)[10:300] + 'AAATTT' + str(record.seq)[306:450]}\n>Distant_Variant\n{'A'*50 + str(record.seq)[50:200] + 'C'*50}"
+            
+            fasta_input = st.text_area("FASTA Input", default_fasta, height=300, label_visibility="collapsed")
+            
+            if st.button(t('generate_tree_btn')):
+                # Parse simple FASTA
+                fasta_dict = {}
+                current_name = ""
+                current_seq = []
+                for line in fasta_input.split('\n'):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    if line.startswith('>'):
+                        if current_name:
+                            fasta_dict[current_name] = "".join(current_seq)
+                        current_name = line[1:]
+                        current_seq = []
+                    else:
+                        current_seq.append(line.upper().replace(" ", ""))
+                if current_name:
+                    fasta_dict[current_name] = "".join(current_seq)
                 
-                st.text(f"Best Match:\n{res['alignment_str']}")
+                if len(fasta_dict) < 3:
+                    st.warning("Please provide at least 3 sequences for a meaningful phylogenetic tree.")
+                else:
+                    with st.spinner("Calculating distance matrix and building tree..."):
+                        from alignment import build_phylogenetic_tree
+                        fig, matrix_data = build_phylogenetic_tree(fasta_dict)
+                        
+                        st.subheader(t('phylogenetic_tree'))
+                        st.pyplot(fig)
+                        
+                        with st.expander(t('distance_matrix')):
+                            st.dataframe(pd.DataFrame(matrix_data), use_container_width=True)
 
         # Tab 6: Disease Associations
         with tabs[5]:
