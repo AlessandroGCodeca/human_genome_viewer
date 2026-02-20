@@ -403,6 +403,11 @@ if st.session_state.active_id:
         with tabs[7]:
             st.subheader(t('tab_ai'))
             
+            gemini_api_key = st.text_input("Enter your Google Gemini API Key:", type="password", key="gemini_key_input")
+            st.caption("You can get a free API key from [Google AI Studio](https://aistudio.google.com/).")
+            
+            st.divider()
+            
             # Use session state to store chat history for the current selected ID
             if "messages" not in st.session_state:
                 st.session_state.messages = []
@@ -433,7 +438,7 @@ if st.session_state.active_id:
                 # Display assistant response in chat message container
                 with st.chat_message("assistant"):
                     with st.spinner("Thinking..."):
-                        response = get_ai_response(active_id, prompt)
+                        response = get_ai_response(active_id, prompt, api_key=gemini_api_key)
                     st.markdown(response)
                 # Add assistant response to chat history
                 st.session_state.messages.append({"role": "assistant", "content": response})
