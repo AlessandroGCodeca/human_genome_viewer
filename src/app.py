@@ -172,7 +172,8 @@ if fetch_btn and selected_id:
             st.subheader(t('gc_skew'))
             st.caption(t('gc_skew_desc'))
             
-            skew_data = get_gc_skew(record.seq, window_size, step=20)
+            # Pass sequence as string to avoid Streamlit UnhashableParamError for Bio.Seq objects
+            skew_data = get_gc_skew(str(record.seq), window_size, step=20)
             df_skew = pd.DataFrame(skew_data)
             
             if not df_skew.empty:
@@ -193,7 +194,7 @@ if fetch_btn and selected_id:
             
             st.divider()
             st.subheader(t('codon_usage'))
-            codon_data = get_codon_usage(record.seq)
+            codon_data = get_codon_usage(str(record.seq))
             df_codons = pd.DataFrame(codon_data)
             
             with st.expander(t('codon_table')):
