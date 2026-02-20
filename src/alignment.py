@@ -64,9 +64,8 @@ def build_phylogenetic_tree(fasta_dict):
                 seq1 = sequences[i]
                 seq2 = sequences[j]
                 
-                # Perform alignment
-                alignments = aligner.align(seq1, seq2)
-                score = alignments[0].score if alignments else 0
+                # Perform alignment and get only the score (avoids path generation OverflowError)
+                score = aligner.score(seq1, seq2)
                 
                 # Normalize score to distance (0 to 1)
                 # Max possible score is the match_score * length of the shorter sequence
