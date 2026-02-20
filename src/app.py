@@ -17,6 +17,7 @@ from disease_data import get_disease_variants
 from structure_viewer import render_pdb
 from simulator import MutationSimulator
 from alignment import perform_pairwise_alignment
+from ai_assistant import get_ai_response
 
 # --- Page Config ---
 st.set_page_config(
@@ -140,7 +141,8 @@ if fetch_btn and selected_id:
             t('tab_mutation'), # New
             t('tab_align'),    # New
             t('tab_disease'),
-            t('tab_advanced')
+            t('tab_advanced'),
+            t('tab_ai')        # AI Assistant
         ])
 
         # Tab 1: Overview
@@ -288,8 +290,9 @@ if fetch_btn and selected_id:
                         'alt': 'Alt',
                         'disease': t('disease'),
                         'sig': t('significance'),
-                        'desc': t('description')
-                    }),
+                        'desc': t('description'),
+                        'freq_desc': t('freq_desc')
+                    }).drop(columns=['allele_freq'], errors='ignore'),
                     use_container_width=True
                 )
                 
@@ -298,10 +301,37 @@ if fetch_btn and selected_id:
                     x=alt.X('pos', title=t('position')),
                     y=alt.Y('disease', title=t('disease')),
                     color=alt.Color('sig', legend=alt.Legend(title=t('significance')), scale=alt.Scale(scheme='reds')),
-                    tooltip=['pos', 'ref', 'alt', 'disease', 'desc']
+                    tooltip=['pos', 'ref', 'alt', 'disease', 'desc', 'freq_desc']
                 ).properties(height=200)
                 
                 st.altair_chart(base_chart, use_container_width=True)
+                
+                # Population Genetics (Allele Frequencies)
+                st.markdown(f"#### {t('allele_freq')}")
+                
+                # Flatten the allele frequency data for Altair
+                freq_data = []
+                for _, row in df_variants.iterrows():
+                    if 'allele_freq' in row and isinstance(row['allele_freq'], dict):
+                        for pop, freq in row['allele_freq'].items():
+                            pop_label = t(f'pop_{pop.lower()}') if f'pop_{pop.lower()}' in TRANSLATIONS[LANG] else pop
+                            freq_data.append({
+                                'Variant': f"{row['disease']} ({row['pos']}{row['ref']}>{row['alt']})",
+                                'Population': pop_label,
+                                'Frequency': freq
+                            })
+                
+                if freq_data:
+                    df_freqs = pd.DataFrame(freq_data)
+                    freq_chart = alt.Chart(df_freqs).mark_bar().encode(
+                        x=alt.X('Population:N', title='Population', axis=alt.Axis(labelAngle=-45)),
+                        y=alt.Y('Frequency:Q', title='Frequency'),
+                        color='Population:N',
+                        column=alt.Column('Variant:N', title='Variants'),
+                        tooltip=['Variant', 'Population', 'Frequency']
+                    ).properties(width=120, height=250)
+                    
+                    st.altair_chart(freq_chart)
                 
             else:
                 st.warning(f"No mock disease data available for gene {record.id}. Try searching for 'Insulin' (NM_000014).")
@@ -333,6 +363,45 @@ if fetch_btn and selected_id:
                         st.write(f"Positions: {locs[:10]}...")
                     else:
                         st.warning(t('not_found'))
+
+        # Tab 8: AI Assistant
+        with tabs[7]:
+            st.subheader(t('tab_ai'))
+            
+            # Use session state to store chat history for the current selected ID
+            if "messages" not in st.session_state:
+                st.session_state.messages = []
+            
+            # Reset messages if a newly searched gene ID is found, or we can just keep them.
+            # To be simple, we just append to the state.
+            
+            # Display chat messages from history on app rerun
+            for message in st.session_state.messages:
+                with st.chat_message(message["role"]):
+                    st.markdown(message["content"])
+            
+            # If empty, add a greeting message from the assistant
+            if not st.session_state.messages:
+                greeting = t('ai_greeting').format(record.id)
+                st.session_state.messages.append({"role": "assistant", "content": greeting})
+                with st.chat_message("assistant"):
+                    st.markdown(greeting)
+
+            # Accept user input
+            if prompt := st.chat_input(t('ai_placeholder')):
+                # Display user message in chat message container
+                with st.chat_message("user"):
+                    st.markdown(prompt)
+                # Add user message to chat history
+                st.session_state.messages.append({"role": "user", "content": prompt})
+                
+                # Display assistant response in chat message container
+                with st.chat_message("assistant"):
+                    with st.spinner("Thinking..."):
+                        response = get_ai_response(selected_id, prompt)
+                    st.markdown(response)
+                # Add assistant response to chat history
+                st.session_state.messages.append({"role": "assistant", "content": response})
 
     else:
         st.error(f"{t('error_fetch')} {selected_id}")

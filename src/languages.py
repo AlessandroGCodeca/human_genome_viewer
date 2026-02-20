@@ -82,7 +82,17 @@ TRANSLATIONS = {
         'variant': "Variant",
         'disease': "Disease",
         'significance': "Significance",
-        'position': "Position"
+        'position': "Position",
+        'tab_ai': "🤖 AI Gene Assistant",
+        'ai_placeholder': "Ask about this gene (e.g. What does this gene do in the liver?)...",
+        'ai_greeting': "Hello! I am the AI Gene Assistant. Ask me anything about the **{}** gene.",
+        'allele_freq': "Allele Frequency (1000 Genomes)",
+        'pop_eur': "Europe (EUR)",
+        'pop_eas': "East Asia (EAS)",
+        'pop_afr': "Africa (AFR)",
+        'pop_amr': "Americas (AMR)",
+        'pop_sas': "South Asia (SAS)",
+        'freq_desc': "Frequency Notes"
     },
     'IT': {
         'title': "🧬 Analisi Genoma Umano",
@@ -167,7 +177,17 @@ TRANSLATIONS = {
         'variant': "Variante",
         'disease': "Malattia",
         'significance': "Significatività",
-        'position': "Posizione"
+        'position': "Posizione",
+        'tab_ai': "🤖 Assistente AI Geni",
+        'ai_placeholder': "Chiedi informazioni su questo gene (es. Cosa fa nel fegato?)...",
+        'ai_greeting': "Ciao! Sono l'Assistente AI per i Geni. Chiedimi qualsiasi cosa sul gene **{}**.",
+        'allele_freq': "Frequenza Allelica (1000 Genomes)",
+        'pop_eur': "Europa (EUR)",
+        'pop_eas': "Estremo Oriente (EAS)",
+        'pop_afr': "Africa (AFR)",
+        'pop_amr': "Americhe (AMR)",
+        'pop_sas': "Sud Asia (SAS)",
+        'freq_desc': "Note sulla Frequenza"
     },
     'SK': {
         'title': "🧬 Analýza Ľudského Genómu",
@@ -252,6 +272,16 @@ TRANSLATIONS = {
         'variant': "Variant",
         'disease': "Choroba",
         'significance': "Významnosť",
-        'position': "Pozícia"
+        'position': "Pozícia",
+        'tab_ai': "🤖 AI Génový Asistent",
+        'ai_placeholder': "Spýtajte sa na tento gén (napr. Čo robí tento gén v pečeni?)...",
+        'ai_greeting': "Ahoj! Som AI Génový Asistent. Spýtajte sa ma čokoľvek o géne **{}**.",
+        'allele_freq': "Frekvencia Alel (1000 Genomes)",
+        'pop_eur': "Európa (EUR)",
+        'pop_eas': "Východná Ázia (EAS)",
+        'pop_afr': "Afrika (AFR)",
+        'pop_amr': "Ameriky (AMR)",
+        'pop_sas': "Južná Ázia (SAS)",
+        'freq_desc': "Poznámky k Frekvencii"
     }
 }
