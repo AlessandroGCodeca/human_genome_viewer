@@ -118,11 +118,18 @@ window_size = st.sidebar.slider(t('window_size'), 50, 500, 100, step=50)
 
 fetch_btn = st.sidebar.button(t('analyze_btn'), type="primary")
 
-# --- Main Content ---
+if 'active_id' not in st.session_state:
+    st.session_state.active_id = None
+
 if fetch_btn and selected_id:
-    with st.spinner(f"{t('fetching')} {selected_id}..."):
+    st.session_state.active_id = selected_id
+
+# --- Main Content ---
+if st.session_state.active_id:
+    active_id = st.session_state.active_id
+    with st.spinner(f"{t('fetching')} {active_id}..."):
         try:
-            record = fetch_sequence_cached(selected_id)
+            record = fetch_sequence_cached(active_id)
         except Exception:
             record = None
 
@@ -426,15 +433,15 @@ if fetch_btn and selected_id:
                 # Display assistant response in chat message container
                 with st.chat_message("assistant"):
                     with st.spinner("Thinking..."):
-                        response = get_ai_response(selected_id, prompt)
+                        response = get_ai_response(active_id, prompt)
                     st.markdown(response)
                 # Add assistant response to chat history
                 st.session_state.messages.append({"role": "assistant", "content": response})
 
     else:
-        st.error(f"{t('error_fetch')} {selected_id}")
+        st.error(f"{t('error_fetch')} {active_id}")
 
-elif not fetch_btn:
+elif not st.session_state.active_id:
     st.info(t('landing_info'))
     
     st.markdown(t('features_title'))
