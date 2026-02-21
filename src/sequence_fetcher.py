@@ -85,6 +85,47 @@ class SequenceFetcher:
             print(f"Error searching gene {gene_name}: {e}")
             return []
 
+    def fetch_gene_location(self, accession_id):
+        """
+        Fetches the chromosome and cytoband location for a given accession ID.
+        This requires a two-step process: find the Gene ID in the nucleotide DB, then
+        query the gene DB for the exact MapLocation.
+        """
+        try:
+            # 1. First search the gene database using the accession ID
+            search_handle = Entrez.esearch(db="gene", term=accession_id)
+            search_results = Entrez.read(search_handle)
+            search_handle.close()
+            time.sleep(0.34)
+            
+            if not search_results["IdList"]:
+                return None, None
+                
+            gene_id = search_results["IdList"][0]
+            
+            # 2. Fetch the summary for that specific Gene ID
+            summary_handle = Entrez.esummary(db="gene", id=gene_id)
+            summary_results = Entrez.read(summary_handle)
+            summary_handle.close()
+            time.sleep(0.34)
+            
+            if summary_results and len(summary_results["DocumentSummarySet"]["DocumentSummary"]) > 0:
+                doc = summary_results["DocumentSummarySet"]["DocumentSummary"][0]
+                chrom = doc.get("Chromosome", "")
+                map_loc = doc.get("MapLocation", "")
+                
+                if chrom and map_loc:
+                    return str(chrom), str(map_loc)
+            
+            return None, None
+            
+        except HTTPError as e:
+            print(f"HTTP Error fetching location for {accession_id}: {e}")
+            return None, None
+        except Exception as e:
+            print(f"Error fetching location for {accession_id}: {e}")
+            return None, None
+
 if __name__ == "__main__":
     # Test
     fetcher = SequenceFetcher()

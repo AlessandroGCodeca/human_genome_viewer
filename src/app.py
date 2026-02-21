@@ -18,6 +18,9 @@ from structure_viewer import render_pdb
 from simulator import MutationSimulator
 from alignment import perform_pairwise_alignment
 from ai_assistant import get_ai_response
+from streamlit_lottie import st_lottie
+import streamlit.components.v1 as components
+import json
 
 # --- Page Config ---
 st.set_page_config(
@@ -36,6 +39,16 @@ def load_css():
 
 # Inject custom CSS
 load_css()
+
+def load_lottiefile(filepath: str):
+    with open(filepath, "r") as f:
+        return json.load(f)
+
+# Optional: Load the lottie data once
+try:
+    lottie_dna = load_lottiefile(os.path.join(os.path.dirname(__file__), "assets", "lottie_dna.json"))
+except Exception:
+    lottie_dna = None
 
 # --- Custom Altair Theme ---
 def custom_dark_theme():
@@ -139,7 +152,11 @@ if search_mode == t('search_by_name'):
     
     if st.sidebar.button("🔍 Search NCBI"):
         if query:
-            with st.spinner("Searching..."):
+            with st.container():
+                if lottie_dna:
+                    st_lottie(lottie_dna, height=100, key="lottie_search")
+                else:
+                    st.info("Searching...")
                 fetcher = SequenceFetcher()
                 results = fetcher.search_gene_by_name(query, limit=15)
                 st.session_state.ncbi_search_results = results
@@ -172,11 +189,32 @@ if fetch_btn and selected_id:
 # --- Main Content ---
 if st.session_state.active_id:
     active_id = st.session_state.active_id
-    with st.spinner(f"{t('fetching')} {active_id}..."):
-        try:
-            record = fetch_sequence_cached(active_id)
-        except Exception:
-            record = None
+    if lottie_dna:
+        with st.container():
+            st_lottie(lottie_dna, height=150, key="lottie_fetch")
+            try:
+                record = fetch_sequence_cached(active_id)
+                # Fetch Chromosome automatically for ideogram
+                f = SequenceFetcher()
+                chrom, loc = f.fetch_gene_location(active_id)
+                st.session_state.active_chrom = chrom
+                st.session_state.active_loc = loc
+            except Exception:
+                record = None
+                st.session_state.active_chrom = None
+                st.session_state.active_loc = None
+    else:
+        with st.spinner(f"{t('fetching')} {active_id}..."):
+            try:
+                record = fetch_sequence_cached(active_id)
+                f = SequenceFetcher()
+                chrom, loc = f.fetch_gene_location(active_id)
+                st.session_state.active_chrom = chrom
+                st.session_state.active_loc = loc
+            except Exception:
+                record = None
+                st.session_state.active_chrom = None
+                st.session_state.active_loc = None
 
     if record:
         # Summary Box
@@ -234,6 +272,44 @@ if st.session_state.active_id:
 
         # Tab 1: Overview
         with tabs[0]:
+            st.markdown("### 🧬 Genomic Location")
+            
+            chrom = st.session_state.get('active_chrom')
+            loc = st.session_state.get('active_loc')
+            
+            if chrom and loc:
+                st.caption(f"Mapped to Chromosome **{chrom}** at cytoband **{loc}**")
+                # Ideogram.js HTML Block
+                # Clean up loc to just the cytoband part if it includes chromosome e.g. "17p13.1" -> "p13.1"
+                # But ideogram actually accepts the full string in 'band' or 'chr' + 'band'.
+                ideogram_html = f"""
+                <div id="ideo-container" style="width: 100%; display: flex; justify-content: center; overflow-x: auto;"></div>
+                <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/ideogram@1.41.0/dist/js/ideogram.min.js"></script>
+                <script type="text/javascript">
+                  const config = {{
+                    organism: 'human',
+                    container: '#ideo-container',
+                    chrWidth: 15,
+                    chrHeight: 400,
+                    chrMargin: 10,
+                    showChromosomeLabels: true,
+                    annotations: [{{
+                        name: '{record.id}',
+                        chr: '{chrom}',
+                        targets: ['{loc}']
+                    }}],
+                    annotationHeight: 5,
+                    annotationColor: '#E94560'
+                  }};
+                  const ideogram = new Ideogram(config);
+                </script>
+                """
+                components.html(ideogram_html, height=450, scrolling=False)
+            else:
+                st.info("Chromosome mapping not available for this transcript.")
+            
+            st.markdown("---")
+            
             col1, col2 = st.columns(2)
             with col1:
                 st.metric(t('seq_len'), f"{len(record.seq):,}")
