@@ -1,10 +1,13 @@
-from Bio.Align import PairwiseAligner
+from Bio.Align import PairwiseAligner, MultipleSeqAlignment
 from Bio.Phylo.TreeConstruction import DistanceTreeConstructor, DistanceMatrix
 from Bio import Phylo
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 import io
+import networkx as nx
+from typing import Dict, List, Any, Tuple, Optional
+from Bio.SeqRecord import SeqRecord
 
-def format_alignment(alignments):
+def format_alignment(alignments: Any) -> str:
     """
     Format the best alignment for display.
     """
@@ -14,34 +17,35 @@ def format_alignment(alignments):
     best_alignment = alignments[0]
     return str(best_alignment)
 
-def perform_pairwise_alignment(seq1, seq2, match_score=1.0, mismatch_score=-1.0, gap_score=-0.5):
+def perform_pairwise_alignment(seq1: str, seq2: str, match_score: float = 1.0, mismatch_score: float = -1.0, gap_score: float = -0.5, mode: str = 'global') -> Dict[str, Any]:
     """
-    Perform pairwise alignment between two sequences.
+    Perform pairwise alignment between two sequences (Global or Local).
     """
     aligner = PairwiseAligner()
-    aligner.mode = 'global'
+    aligner.mode = mode if mode in ['global', 'local'] else 'global'
     aligner.match_score = match_score
     aligner.mismatch_score = mismatch_score
     aligner.open_gap_score = gap_score
-    aligner.extend_gap_score = -0.1
+    aligner.extend_gap_score = gap_score / 2.0  # Common heuristic
     
     alignments = aligner.align(seq1, seq2)
     
     return {
         'score': alignments[0].score if alignments else 0,
         'alignment_str': format_alignment(alignments),
-        'count': len(alignments)
+        'count': len(alignments),
+        'mode': aligner.mode
     }
 
-def build_phylogenetic_tree(fasta_dict):
+def build_phylogenetic_tree(fasta_dict: Dict[str, str]) -> Tuple[Optional[go.Figure], List[Dict[str, Any]]]:
     """
-    Build a phylogenetic tree from a dictionary of sequences using Pairwise distances.
+    Build an interactive phylogenetic tree from a dictionary of sequences using Pairwise distances.
     
     Args:
         fasta_dict (dict): Dictionary with sequence names as keys and DNA sequences as values.
     
     Returns:
-        tuple: (matplotlib Figure, list of distance matrix rows for display)
+        tuple: (Plotly Figure, list of distance matrix rows for display)
     """
     names = list(fasta_dict.keys())
     sequences = list(fasta_dict.values())
@@ -85,9 +89,64 @@ def build_phylogenetic_tree(fasta_dict):
     constructor = DistanceTreeConstructor()
     tree = constructor.upgma(dm)
     
-    # Render Tree with Matplotlib
-    fig, ax = plt.subplots(figsize=(8, 5))
-    Phylo.draw(tree, axes=ax, do_show=False)
+    # Render Tree with Plotly (Convert Biopython tree to NetworkX for coordinates)
+    net = Phylo.to_networkx(tree)
+    
+    # We use roughly a spectral layout or kamada_kawai for unrooted viewing
+    pos = nx.spring_layout(net, seed=42) 
+    
+    edge_x = []
+    edge_y = []
+    for edge in net.edges():
+        x0, y0 = pos[edge[0]]
+        x1, y1 = pos[edge[1]]
+        edge_x.extend([x0, x1, None])
+        edge_y.extend([y0, y1, None])
+
+    edge_trace = go.Scatter(
+        x=edge_x, y=edge_y,
+        line=dict(width=1.5, color='#888'),
+        hoverinfo='none',
+        mode='lines')
+
+    node_x = []
+    node_y = []
+    node_text = []
+    
+    for node in net.nodes():
+        x, y = pos[node]
+        node_x.append(x)
+        node_y.append(y)
+        # Display name if it's a leaf node, otherwise a generic junction point
+        name = getattr(node, 'name', '')
+        node_text.append(f"Clade: {name}" if name else "Junction Node")
+
+    node_trace = go.Scatter(
+        x=node_x, y=node_y,
+        mode='markers+text',
+        hoverinfo='text',
+        text=[name if getattr(node, 'name', None) and "Inner" not in name else "" for node in net.nodes()],
+        textposition="top center",
+        marker=dict(
+            showscale=False,
+            colorscale='YlGnBu',
+            reversescale=True,
+            color=[],
+            size=10,
+            line_width=2))
+
+    fig = go.Figure(data=[edge_trace, node_trace],
+             layout=go.Layout(
+                showlegend=False,
+                hovermode='closest',
+                margin=dict(b=20,l=5,r=5,t=40),
+                annotations=[ dict(
+                    showarrow=False,
+                    xref="paper", yref="paper",
+                    x=0.005, y=-0.002 ) ],
+                xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
+             )
     
     # Format matrix for display
     matrix_data = []
@@ -98,3 +157,37 @@ def build_phylogenetic_tree(fasta_dict):
         matrix_data.append(row_dict)
         
     return fig, matrix_data
+
+def perform_multiple_sequence_alignment(fasta_dict: Dict[str, str]) -> str:
+    """
+    Perform a very basic progressive MSA structure. 
+    (For true MSA in Python offline, third-party C-binaries like Muscle are required. 
+    This acts as a placeholder/heuristic approach for the UI).
+    """
+    if len(fasta_dict) < 2:
+        return "Need at least 2 sequences for alignment."
+        
+    # In a real heavy-duty app, we would wrap MuscleCommandline here.
+    # For now, we perform iterative pairwise to a consensus (Progressive Alignment stub)
+    sequences = list(fasta_dict.values())
+    names = list(fasta_dict.keys())
+    
+    aligner = PairwiseAligner()
+    aligner.mode = 'global'
+    
+    res = f"--- Basic Progressive Alignment Synopsis ---\n"
+    res += f"Aligned {len(names)} sequences based on pairwise progressive scoring.\n"
+    
+    # Demo heuristic: Align all against the first sequence
+    base_seq = sequences[0]
+    res += f"Reference: {names[0]} (Length {len(base_seq)})\n\n"
+    
+    for i in range(1, len(sequences)):
+        alignments = aligner.align(base_seq, sequences[i])
+        best = alignments[0]
+        res += f"> {names[i]} (Score: {best.score})\n"
+        # Just show the first 100 char summarized snippet for readability
+        snippet = str(best).split("\n")
+        res += f"{snippet[0][:100]}...\n{snippet[1][:100]}...\n{snippet[2][:100]}...\n\n"
+        
+    return res

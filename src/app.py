@@ -17,11 +17,12 @@ from disease_data import get_disease_variants
 from structure_viewer import render_pdb
 from isoform_viewer import fetch_ensembl_transcripts, plot_isoforms
 from simulator import MutationSimulator
-from alignment import perform_pairwise_alignment
+from alignment import perform_pairwise_alignment, perform_multiple_sequence_alignment, build_phylogenetic_tree
 from ai_assistant import get_ai_response
 from streamlit_lottie import st_lottie
 import streamlit.components.v1 as components
 import json
+import re
 
 # --- Page Config ---
 st.set_page_config(
@@ -176,6 +177,11 @@ if search_mode == t('search_by_name'):
         st.sidebar.warning(t('no_matches'))
 else:
     selected_id = st.sidebar.text_input(t('accession_id'), value="NM_000014.6")
+    if selected_id:
+        # Regex validation for NCBI Accession (e.g., NM_123456.7, NC_000001)
+        if not re.match(r'^[A-Z]{2}_?\d+(\.\d+)?$', selected_id.strip()):
+            st.sidebar.error("Invalid Accession ID format. Expected format like 'NM_000014.6'")
+            selected_id = None
 
 st.sidebar.markdown("---")
 st.sidebar.header(t('settings_header'))
@@ -186,6 +192,16 @@ fetch_btn = st.sidebar.button(t('analyze_btn'), type="primary")
 
 if 'active_id' not in st.session_state:
     st.session_state.active_id = None
+
+# Initialize alignment session state
+if 'align_match' not in st.session_state:
+    st.session_state.align_match = 1.0
+if 'align_mismatch' not in st.session_state:
+    st.session_state.align_mismatch = -1.0
+if 'align_gap' not in st.session_state:
+    st.session_state.align_gap = -0.5
+if 'align_mode' not in st.session_state:
+    st.session_state.align_mode = 'global'
 
 if fetch_btn and selected_id:
     st.session_state.active_id = selected_id
@@ -217,6 +233,7 @@ if st.session_state.active_id:
         # Clear the lottie animation container once data is fetched
         lottie_container.empty()
     else:
+        # UX: Add a spinner for slow NCBI fetching
         with st.spinner(f"{t('fetching')} {active_id}..."):
             try:
                 record = fetch_sequence_cached(active_id)
@@ -236,6 +253,11 @@ if st.session_state.active_id:
     if record:
         # Summary Box
         st.success(f"{t('loaded')}: **{record.id}**")
+        
+        # Download FASTA button
+        fasta_str = f">{record.id} {record.description}\n{str(record.seq)}"
+        st.download_button("💾 Download FASTA", data=fasta_str, file_name=f"{record.id}.fasta", mime="text/plain")
+        
         with st.expander(f"📝 {t('description')} & {t('raw_seq')}", expanded=False):
             st.markdown(f"**{t('description')}:** {record.description}")
             
@@ -457,7 +479,17 @@ if st.session_state.active_id:
             st.subheader(t('tab_align'))
             st.write(t('align_intro'))
             
-            st.markdown(f"**{t('msa_input_desc')}**")
+            # Use columns for local/global UI toggle
+            col_align_set1, col_align_set2 = st.columns(2)
+            with col_align_set1:
+                st.session_state.align_mode = st.radio("Alignment Mode", ['global', 'local'], index=0 if st.session_state.align_mode == 'global' else 1, horizontal=True)
+                st.session_state.align_match = st.number_input("Match Score", value=st.session_state.align_match, step=0.5)
+            with col_align_set2:
+                st.session_state.align_mismatch = st.number_input("Mismatch Score", value=st.session_state.align_mismatch, step=0.5)
+                st.session_state.align_gap = st.number_input("Gap Penalty", value=st.session_state.align_gap, step=0.5)
+            
+            st.markdown("---")
+            st.markdown(f"**{t('msa_input_desc')} (Basic MSA/Progressive & Tree)**")
             
             # Default example sequences for the tree
             default_fasta = f">Selected_{record.id}\n{str(record.seq)}\n>Variant_1\n{str(record.seq)[:400] + 'TGAC' + str(record.seq)[404:]}\n>Variant_2\n{str(record.seq)[10:300] + 'AAATTT' + str(record.seq)[306:450]}\n>Distant_Variant\n{'A'*50 + str(record.seq)[50:200] + 'C'*50}"
@@ -486,15 +518,23 @@ if st.session_state.active_id:
                 if len(fasta_dict) < 3:
                     st.warning("Please provide at least 3 sequences for a meaningful phylogenetic tree.")
                 else:
-                    with st.spinner("Calculating distance matrix and building tree..."):
-                        from alignment import build_phylogenetic_tree
+                    with st.spinner("Calculating multiple sequence alignments and tree..."):
+                        # Show basic progressive alignment
+                        msa_result = perform_multiple_sequence_alignment(fasta_dict)
+                        # Build phylogenetic tree natively
                         fig, matrix_data = build_phylogenetic_tree(fasta_dict)
                         
+                        st.subheader("Progressive Alignment Heuristic")
+                        st.text(msa_result)
+                        
                         st.subheader(t('phylogenetic_tree'))
-                        st.pyplot(fig)
+                        st.plotly_chart(fig, use_container_width=True) # Plotly interactive instead of pyplot
                         
                         with st.expander(t('distance_matrix')):
-                            st.dataframe(pd.DataFrame(matrix_data), use_container_width=True)
+                            df_matrix = pd.DataFrame(matrix_data)
+                            st.dataframe(df_matrix, use_container_width=True)
+                            csv = df_matrix.to_csv(index=False).encode('utf-8')
+                            st.download_button("💾 Download Matrix CSV", csv, "distance_matrix.csv", "text/csv")
 
         # Tab 6: Disease Associations
         with tabs[5]:
