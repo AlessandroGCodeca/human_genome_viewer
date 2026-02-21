@@ -153,14 +153,17 @@ if search_mode == t('search_by_name'):
     
     if st.sidebar.button("🔍 Search NCBI"):
         if query:
-            with st.container():
+            lottie_search_container = st.empty()
+            with lottie_search_container:
                 if lottie_dna:
                     st_lottie(lottie_dna, height=100, key="lottie_search")
                 else:
                     st.info("Searching...")
-                fetcher = SequenceFetcher()
-                results = fetcher.search_gene_by_name(query, limit=15)
-                st.session_state.ncbi_search_results = results
+            
+            fetcher = SequenceFetcher()
+            results = fetcher.search_gene_by_name(query, limit=15)
+            st.session_state.ncbi_search_results = results
+            lottie_search_container.empty()
         else:
             st.sidebar.warning("Please enter a gene name.")
             
@@ -191,19 +194,24 @@ if fetch_btn and selected_id:
 if st.session_state.active_id:
     active_id = st.session_state.active_id
     if lottie_dna:
-        with st.container():
+        lottie_container = st.empty()
+        with lottie_container:
             st_lottie(lottie_dna, height=150, key="lottie_fetch")
-            try:
-                record = fetch_sequence_cached(active_id)
-                # Fetch Chromosome automatically for ideogram
-                f = SequenceFetcher()
-                chrom, loc = f.fetch_gene_location(active_id)
-                st.session_state.active_chrom = chrom
-                st.session_state.active_loc = loc
-            except Exception:
-                record = None
-                st.session_state.active_chrom = None
-                st.session_state.active_loc = None
+            
+        try:
+            record = fetch_sequence_cached(active_id)
+            # Fetch Chromosome automatically for ideogram
+            f = SequenceFetcher()
+            chrom, loc = f.fetch_gene_location(active_id)
+            st.session_state.active_chrom = chrom
+            st.session_state.active_loc = loc
+        except Exception:
+            record = None
+            st.session_state.active_chrom = None
+            st.session_state.active_loc = None
+            
+        # Clear the lottie animation container once data is fetched
+        lottie_container.empty()
     else:
         with st.spinner(f"{t('fetching')} {active_id}..."):
             try:
