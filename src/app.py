@@ -149,7 +149,42 @@ if st.session_state.active_id:
         st.success(f"{t('loaded')}: **{record.id}**")
         with st.expander(f"📝 {t('description')} & {t('raw_seq')}", expanded=False):
             st.markdown(f"**{t('description')}:** {record.description}")
-            st.text_area("Sequence", str(record.seq)[:500] + "...", height=100)
+            
+            # Custom Interactive Sequence Viewer
+            st.markdown("##### Interactive Sequence Viewer (Start/Stop Codons Highlighted)")
+            seq_str = str(record.seq)
+            limit = 5000
+            
+            if len(seq_str) > limit:
+                display_seq = seq_str[:limit]
+                st.caption(f"Sequence visualization truncated to first {limit} bases for performance.")
+            else:
+                display_seq = seq_str
+                
+            html_seq = display_seq
+            html_seq = html_seq.replace('ATG', '<span style="background-color: #2E8B57; color: white; border-radius: 3px; padding: 0 1px;" title="Start Codon">ATG</span>')
+            for stop in ['TAA', 'TAG', 'TGA']:
+                html_seq = html_seq.replace(stop, f'<span style="background-color: #DC143C; color: white; border-radius: 3px; padding: 0 1px;" title="Stop Codon">{stop}</span>')
+                
+            viewer_html = f"""
+            <div style="
+                font-family: 'Courier New', Courier, monospace; 
+                font-size: 14px; 
+                line-height: 1.6; 
+                word-wrap: break-word; 
+                background-color: rgba(0,0,0,0.2); 
+                padding: 15px; 
+                border-radius: 8px;
+                max-height: 300px;
+                overflow-y: auto;
+                border: 1px solid rgba(255,255,255,0.1);
+                color: #EAEAEA;
+                letter-spacing: 1px;
+            ">
+                {html_seq}
+            </div>
+            """
+            st.markdown(viewer_html, unsafe_allow_html=True)
 
         # Tabs
         tabs = st.tabs([
