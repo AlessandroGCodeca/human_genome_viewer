@@ -1,0 +1,90 @@
+/* Glassmorphism CSS for Streamlit */
+
+/* App background */
+.stApp {
+    background: linear-gradient(135deg, #1A1A2E 0%, #16213E 50%, #0F3460 100%);
+    background-attachment: fixed;
+}
+
+/* Sidebar styling */
+section[data-testid="stSidebar"] {
+    background: rgba(26, 26, 46, 0.7);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Main headers and text colors */
+h1, h2, h3, p, span, div {
+    color: #EAEAEA;
+}
+
+/* Dataframe/Table styling */
+div[data-testid="stDataFrame"] {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 10px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Metrics */
+div[data-testid="stMetric"] {
+    background: rgba(255, 255, 255, 0.03);
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Expanders */
+div[data-testid="stExpander"] {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Inputs (Text area, text input) */
+div[data-baseweb="input"] > div, div[data-baseweb="textarea"] > div {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    color: white !important;
+    border-radius: 8px;
+}
+
+div[data-baseweb="input"] input, div[data-baseweb="textarea"] textarea {
+    color: white !important;
+}
+
+/* Buttons */
+button[data-testid="baseButton-primary"] {
+    background: linear-gradient(90deg, #E94560 0%, #FF6B6B 100%);
+    border: none;
+    box-shadow: 0 4px 15px rgba(233, 69, 96, 0.4);
+    transition: all 0.3s ease;
+}
+
+button[data-testid="baseButton-primary"]:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(233, 69, 96, 0.6);
+}
+
+/* Tabs */
+button[data-baseweb="tab"] {
+    background: transparent !important;
+    color: #A0A0A0 !important;
+}
+
+button[data-baseweb="tab"][aria-selected="true"] {
+    color: #E94560 !important;
+    font-weight: bold;
+    border-bottom-color: #E94560 !important;
+}
+
+/* Info, Success, Warning boxes */
+div[data-testid="stAlert"] {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
