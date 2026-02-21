@@ -527,29 +527,61 @@ if st.session_state.active_id:
         st.error(f"{t('error_fetch')} {active_id}")
 
 elif not st.session_state.active_id:
-    st.markdown("""
-    ## Welcome to the Human Genome Analysis Viewer 🧬
+    # Cleaner, more spaced out landing page
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; font-size: 3rem;'>Welcome to the Human Genome Analysis Viewer 🧬</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #A0A0A0; font-size: 1.2rem; max-width: 800px; margin: 0 auto 40px auto;'>An interactive, high-performance bioinformatics platform designed to explore, analyze, and visualize human DNA and protein sequences using real-time NCBI data.</p>", unsafe_allow_html=True)
     
-    This application is an interactive, high-performance bioinformatics platform designed to explore, analyze, and visualize human DNA and protein sequences. Using real-time data from the NCBI databases, it allows researchers, students, and enthusiasts to delve deep into the molecular components of life.
+    st.markdown("### 🔬 Quick Start Guide")
+    st.info("👈 Use the **Gene Selection** menu in the sidebar to begin your analysis.")
     
-    ### 🔬 How to start
-    To begin your analysis, use the **Gene Selection** menu in the sidebar on the left:
-    1. **Search by Name:** Enter a gene name (e.g., `TP53`, `BRCA1`, `MTHFR`) and click **Search NCBI**. Select the correct transcript from the dropdown.
-    2. **Accession ID:** If you know the exact NCBI Accession ID (e.g., `NM_000546.6`), you can enter it directly.
-    3. Click the **🚀 Analyze Sequence** button.
+    col_a, col_b = st.columns(2)
+    with col_a:
+        st.markdown("""
+        **1. Search by Name**
+        Search the live live NCBI database by Name. Enter a gene like `TP53`, `BRCA1`, or `MTHFR` and click **Search NCBI**.
+        """)
+    with col_b:
+        st.markdown("""
+        **2. Accession ID**
+        If you know the exact NCBI Accession ID (e.g., `NM_000546.6`), enter it directly. Then click **🚀 Analyze Sequence**.
+        """)
+        
+    st.markdown("<br><hr style='border-color: rgba(255,255,255,0.1);'><br>", unsafe_allow_html=True)
     
-    ---
+    st.markdown("<h3 style='text-align: center;'>Explore Our Features</h3><br>", unsafe_allow_html=True)
     
-    ### 📑 Feature Breakdown
+    # Grid layout for features using columns
+    col1, col2, col3 = st.columns(3)
     
-    Once a sequence is loaded, you will have access to the following analytical modules:
-    
-    * **📊 Overview:** A quick summary of the sequence, including its full length, GC content percentage, a visual sequence length breakdown, and our custom **Interactive Sequence Viewer** that automatically highlights Start (🟢) and Stop (🔴) codons.
-    * **🧬 DNA Structure:** Deep dive into the physical properties of the DNA. View the **Codon Usage** table and an interactive **GC Skew Analysis** chart (powered by blazing fast Polars engine) to identify putative replication origins or asymmetrical nucleotide distributions.
-    * **🧊 3D Structure:** Render and interact with 3D protein structures directly in your browser by inputting a valid PDB ID.
-    * **🧪 Mutation Lab:** A sandbox for editing the raw DNA sequence and simulating point mutations. Discover instantly if a modification results in a silent mutation, introduces a premature Stop Codon, or significantly alters the amino acid properties.
-    * **⚔️ Alignment & Trees:** Perform Multiple Sequence Alignment (MSA). Paste multiple FASTA sequences to calculate sequence distancing and automatically generate a UPGMA Phylogenetic Distance Tree.
-    * **🏥 Disease Associations:** Map known clinical variants to their specific positions on the sequence. Explore allele frequencies across different global populations and understand the clinical significance of specific SNPs.
-    * **🔍 Motifs & Entropy:** Calculate the global Shannon Entropy of the sequence to measure information complexity, plot an interactive Rolling Entropy chart, and pinpoint the exact locations of specific short sequences (Motifs).
-    * **🤖 AI Gene Assistant:** An integrated, context-aware AI assistant powered by Google Gemini. Ask it complex biological questions, request literature summaries, or have it explain specific functions of the gene you are currently analyzing.
-    """)
+    with col1:
+        st.markdown("#### 📊 Sequence Overview")
+        st.markdown("<span style='color: #A0A0A0; font-size: 0.9em;'>Interactive sequence viewer with dynamic Start (🟢) and Stop (🔴) codon highlighting.</span>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        st.markdown("#### 🧬 DNA Structure")
+        st.markdown("<span style='color: #A0A0A0; font-size: 0.9em;'>Analyze Codon Usage and explore ultra-fast Polars-powered GC Skew visualizations.</span>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        st.markdown("#### 🧊 3D Visualizer")
+        st.markdown("<span style='color: #A0A0A0; font-size: 0.9em;'>Render interactive 3D protein structures (PDB) natively in your browser.</span>", unsafe_allow_html=True)
+        
+    with col2:
+        st.markdown("#### 🧪 Mutation Lab")
+        st.markdown("<span style='color: #A0A0A0; font-size: 0.9em;'>Simulate and analyze point mutations to detect silent changes or premature stop codons.</span>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        st.markdown("#### ⚔️ Alignment & Trees")
+        st.markdown("<span style='color: #A0A0A0; font-size: 0.9em;'>Perform Multiple Sequence Alignment (MSA) and generate UPGMA phylogenetic trees.</span>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        st.markdown("#### 🏥 Clinical Variants")
+        st.markdown("<span style='color: #A0A0A0; font-size: 0.9em;'>Map disease associations and explore allele frequencies across global populations.</span>", unsafe_allow_html=True)
+        
+    with col3:
+        st.markdown("#### 🔍 Information Theory")
+        st.markdown("<span style='color: #A0A0A0; font-size: 0.9em;'>Calculate sequence complexity via Shannon Entropy and run motif discovery algorithms.</span>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        st.markdown("#### 🤖 AI Assistant")
+        st.markdown("<span style='color: #A0A0A0; font-size: 0.9em;'>An integrated Google Gemini AI assistant for context-aware biological literature and queries.</span>", unsafe_allow_html=True)
