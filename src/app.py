@@ -100,24 +100,25 @@ search_mode = st.sidebar.radio(t('search_method'), [t('search_by_name'), t('acce
 selected_id = ""
 
 if search_mode == t('search_by_name'):
-    df_genes = get_gene_metadata_v2()
-    # Check if it's a DataFrame
-    if isinstance(df_genes, pd.DataFrame):
-        query = st.sidebar.text_input(t('search_by_name'), placeholder=t('gene_name_placeholder'))
+    st.sidebar.caption("Search the live NCBI database.")
+    query = st.sidebar.text_input(t('search_by_name'), placeholder="e.g., TP53")
+    
+    if st.sidebar.button("🔍 Search NCBI"):
         if query:
-            results = search_genes(df_genes, query)
-            if not results.empty:
-                # Keep technical ID visible but maybe localized description if we had it
-                options = results.apply(lambda x: f"{x['ID']} | {x['Description'][:40]}...", axis=1).tolist()
-                selected_option = st.sidebar.selectbox(t('results'), options)
-                selected_id = selected_option.split(" | ")[0]
-            else:
-                st.sidebar.warning(t('no_matches'))
-    else:
-        # It's an error message
-        st.sidebar.error(f"{t('metadata_error')}\n\nError: {df_genes}")
-        from data_loader import DEFAULT_DATA_PATH
-        st.sidebar.caption(f"Checked path: `{DEFAULT_DATA_PATH}`")
+            with st.spinner("Searching..."):
+                fetcher = SequenceFetcher()
+                results = fetcher.search_gene_by_name(query, limit=15)
+                st.session_state.ncbi_search_results = results
+        else:
+            st.sidebar.warning("Please enter a gene name.")
+            
+    if 'ncbi_search_results' in st.session_state and st.session_state.ncbi_search_results:
+        results = st.session_state.ncbi_search_results
+        options = [f"{r['ID']} | {r['Description'][:40]}..." for r in results]
+        selected_option = st.sidebar.selectbox(t('results'), options)
+        selected_id = selected_option.split(" | ")[0]
+    elif 'ncbi_search_results' in st.session_state and not st.session_state.ncbi_search_results:
+        st.sidebar.warning(t('no_matches'))
 else:
     selected_id = st.sidebar.text_input(t('accession_id'), value="NM_000014.6")
 

@@ -43,6 +43,48 @@ class SequenceFetcher:
             # Be nice to NCBI servers
             time.sleep(0.34) # limit to 3 requests per second
 
+    def search_gene_by_name(self, gene_name, organism="Homo sapiens", limit=10):
+        """
+        Search for a gene by name in the nucleotide database using NCBI E-utilities.
+        
+        Args:
+            gene_name (str): The name of the gene (e.g., 'TP53').
+            organism (str): The organism to filter by.
+            limit (int): Max results to return.
+            
+        Returns:
+            list: A list of dictionaries containing 'ID' and 'Description'.
+        """
+        try:
+            term = f"({gene_name}[Gene]) AND {organism}[Organism] AND mRNA[Filter] AND refseq[Filter]"
+            handle = Entrez.esearch(db="nucleotide", term=term, retmax=limit)
+            record = Entrez.read(handle)
+            handle.close()
+            time.sleep(0.34)
+            
+            id_list = record.get("IdList", [])
+            if not id_list:
+                return []
+                
+            summary_handle = Entrez.esummary(db="nucleotide", id=",".join(id_list))
+            summaries = Entrez.read(summary_handle)
+            summary_handle.close()
+            time.sleep(0.34)
+            
+            results = []
+            for summary in summaries:
+                acc_version = summary.get('AccessionVersion', '')
+                title = summary.get('Title', '')
+                if acc_version:
+                    results.append({
+                        'ID': acc_version,
+                        'Description': title
+                    })
+            return results
+        except Exception as e:
+            print(f"Error searching gene {gene_name}: {e}")
+            return []
+
 if __name__ == "__main__":
     # Test
     fetcher = SequenceFetcher()
