@@ -285,25 +285,31 @@ if st.session_state.active_id:
                 # Clean up loc to just the cytoband part if it includes chromosome e.g. "17p13.1" -> "p13.1"
                 # But ideogram actually accepts the full string in 'band' or 'chr' + 'band'.
                 ideogram_html = f"""
-                <div id="ideo-container" style="width: 100%; display: flex; justify-content: center; overflow-x: auto;"></div>
+                <div id="ideo-container" style="width: 100%; height: 450px; display: flex; justify-content: center; overflow-x: auto;"></div>
                 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/ideogram@1.41.0/dist/js/ideogram.min.js"></script>
                 <script type="text/javascript">
-                  const config = {{
-                    organism: 'human',
-                    container: '#ideo-container',
-                    chrWidth: 15,
-                    chrHeight: 400,
-                    chrMargin: 10,
-                    showChromosomeLabels: true,
-                    annotations: [{{
-                        name: '{record.id}',
-                        chr: '{chrom}',
-                        targets: ['{loc}']
-                    }}],
-                    annotationHeight: 5,
-                    annotationColor: '#E94560'
-                  }};
-                  const ideogram = new Ideogram(config);
+                  try {{
+                      const config = {{
+                        organism: 'human',
+                        container: '#ideo-container',
+                        chrWidth: 15,
+                        chrHeight: 400,
+                        chrMargin: 10,
+                        showChromosomeLabels: true,
+                        annotations: [{{
+                            name: '{record.id}',
+                            chr: '{chrom}',
+                            start: 1,
+                            stop: 1,
+                            color: '#E94560'
+                        }}],
+                        annotationHeight: 5
+                      }};
+                      const ideogram = new Ideogram(config);
+                  }} catch (error) {{
+                      console.error("Ideogram initialization failed:", error);
+                      document.getElementById('ideo-container').innerHTML = "<p style='color: red;'>Error loading chromosome map.</p>";
+                  }}
                 </script>
                 """
                 components.html(ideogram_html, height=450, scrolling=False)
