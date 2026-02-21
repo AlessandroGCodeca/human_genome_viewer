@@ -1,40 +1,43 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Ideogram Test</title>
 </head>
+
 <body>
-    <div id="ideo-container" style="width: 100%; display: flex; justify-content: center; overflow-x: auto; min-height: 400px;"></div>
+    <div id="ideo-container"
+        style="width: 100%; display: flex; justify-content: center; overflow-x: auto; min-height: 400px;"></div>
     <script type="text/javascript">
-      function initIdeogram() {
-          if (typeof Ideogram === 'undefined') {
-              setTimeout(initIdeogram, 50);
-              return;
-          }
-          const config = {
-            organism: 'human',
-            container: '#ideo-container',
-            chrWidth: 15,
-            chrHeight: 400,
-            chrMargin: 10,
-            showChromosomeLabels: true,
-            annotations: [{
-                name: 'NM_000014.6',
-                chr: '12',
-                start: 7687489,
-                stop: 7668420
-            }],
-            annotationHeight: 5,
-            annotationColor: '#E94560'
-          };
-          try {
-              new Ideogram(config);
-              console.log("Ideogram initialized");
-          } catch(e) {
-              console.error("Ideogram error:", e);
-          }
-      }
+        function initIdeogram() {
+            if (typeof Ideogram === 'undefined') {
+                setTimeout(initIdeogram, 50);
+                return;
+            }
+            const config = {
+                organism: 'human',
+                chromosome: '17',
+                chrHeight: 600,
+                orientation: 'horizontal',
+                container: '#ideo-container',
+                annotations: [{
+                    name: 'BRCA1',
+                    chr: '17',
+                    start: 43044294,
+                    stop: 43125482,
+                    color: '#F00'
+                }]
+            };
+            try {
+                new Ideogram(config);
+                console.log("Ideogram initialized");
+            } catch (e) {
+                console.error("Ideogram error:", e);
+            }
+        }
     </script>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/ideogram@1.41.0/dist/js/ideogram.min.js" onload="initIdeogram()"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/ideogram@1.41.0/dist/js/ideogram.min.js"
+        onload="initIdeogram()"></script>
 </body>
+
 </html>

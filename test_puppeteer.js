@@ -17,8 +17,8 @@ const puppeteer = require('puppeteer');
     const html = await page.evaluate(() => {
         return document.getElementById('ideo-container').innerHTML;
     });
-    console.log("HTML length:", html.length);
-    console.log("Snippet:", html.substring(0, 500));
+    require('fs').writeFileSync('ideogram_dump.html', html);
+    console.log("Wrote SVG to ideogram_dump.html");
 
     await browser.close();
 })();
