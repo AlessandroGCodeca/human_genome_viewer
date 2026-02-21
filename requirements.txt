@@ -8,3 +8,4 @@ stmol
 py3Dmol
 ipython-genutils
 google-genai
+polars

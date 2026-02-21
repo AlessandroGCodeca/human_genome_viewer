@@ -47,9 +47,12 @@ def calculate_shannon_entropy(sequence):
         
     return entropy
 
+import polars as pl
+
 def rolling_entropy(sequence, window_size=100, step=20):
     """
     Calculate entropy over a rolling window.
+    Optimized with Polars.
     
     Args:
         sequence (str): DNA sequence.
@@ -57,20 +60,18 @@ def rolling_entropy(sequence, window_size=100, step=20):
         step (int): Step size for sliding.
         
     Returns:
-        pd.DataFrame: DataFrame with 'Position' and 'Entropy'.
+        pl.DataFrame: DataFrame with 'Position' and 'Entropy'.
     """
     if not sequence or len(sequence) < window_size:
-        return pd.DataFrame()
+        return pl.DataFrame()
         
     seq = str(sequence).upper()
-    data = []
     
-    for i in range(0, len(seq) - window_size + 1, step):
-        window_seq = seq[i:i+window_size]
-        ent = calculate_shannon_entropy(window_seq)
-        data.append({'Position': i, 'Entropy': ent})
+    # Generate windows and positions using fast list comprehensions
+    positions = range(0, len(seq) - window_size + 1, step)
+    entropies = [calculate_shannon_entropy(seq[i:i+window_size]) for i in positions]
         
-    return pd.DataFrame(data)
+    return pl.DataFrame({'Position': list(positions), 'Entropy': entropies})
 
 def find_motif(sequence, motif):
     """
