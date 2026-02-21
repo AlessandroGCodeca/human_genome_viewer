@@ -22,8 +22,9 @@ def calculate_gc_skew(sequence, window_size=100, step_size=20):
     # Add row index for dynamic grouping
     df = df.with_row_index("idx")
     
-    # Create indicator columns
+    # Create indicator columns and cast idx to Int64
     df = df.with_columns(
+        pl.col("idx").cast(pl.Int64),
         (pl.col("base") == "G").cast(pl.Int32).alias("is_g"),
         (pl.col("base") == "C").cast(pl.Int32).alias("is_c")
     )
