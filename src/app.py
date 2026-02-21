@@ -301,7 +301,9 @@ if st.session_state.active_id:
                 st.caption(f"Mapped to Chromosome **{chrom}** at cytoband **{loc}**")
                 # Ideogram.js HTML Block
                 ideogram_html = f"""
-                <div id="ideo-container" style="width: 100%; display: flex; justify-content: center; overflow-x: auto; min-height: 400px;"></div>
+                <div style="background-color: #F8F9FA; border-radius: 12px; padding: 15px 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                    <div id="ideo-container" style="width: 100%; display: flex; justify-content: center; overflow-x: auto; min-height: 400px; color: #333;"></div>
+                </div>
                 <script type="text/javascript">
                   function initIdeogram() {{
                       if (typeof Ideogram === 'undefined') {{
