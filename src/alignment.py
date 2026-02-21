@@ -4,8 +4,12 @@ from Bio import Phylo
 import plotly.graph_objects as go
 import io
 import networkx as nx
+import subprocess
+import tempfile
+import os
 from typing import Dict, List, Any, Tuple, Optional
 from Bio.SeqRecord import SeqRecord
+from Bio import AlignIO
 
 def format_alignment(alignments: Any) -> str:
     """
@@ -160,34 +164,61 @@ def build_phylogenetic_tree(fasta_dict: Dict[str, str]) -> Tuple[Optional[go.Fig
 
 def perform_multiple_sequence_alignment(fasta_dict: Dict[str, str]) -> str:
     """
-    Perform a very basic progressive MSA structure. 
-    (For true MSA in Python offline, third-party C-binaries like Muscle are required. 
-    This acts as a placeholder/heuristic approach for the UI).
+    Perform True MSA using 'mafft' via subprocess. 
+    If mafft is executing, reads its stdout.
+    If mafft is missing (e.g., local machine missing apt-get), falls back to the progressive heuristic.
     """
     if len(fasta_dict) < 2:
         return "Need at least 2 sequences for alignment."
+
+    # Try True MSA
+    try:
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.fasta', delete=False) as tmp_in:
+            for name, seq in fasta_dict.items():
+                tmp_in.write(f">{name}\n{seq}\n")
+            tmp_in_path = tmp_in.name
+
+        # Call MAFFT (assuming it's in PATH via packages.txt / apt-get)
+        result = subprocess.run(
+            ['mafft', '--quiet', '--auto', tmp_in_path],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        os.remove(tmp_in_path)
         
-    # In a real heavy-duty app, we would wrap MuscleCommandline here.
-    # For now, we perform iterative pairwise to a consensus (Progressive Alignment stub)
-    sequences = list(fasta_dict.values())
-    names = list(fasta_dict.keys())
-    
-    aligner = PairwiseAligner()
-    aligner.mode = 'global'
-    
-    res = f"--- Basic Progressive Alignment Synopsis ---\n"
-    res += f"Aligned {len(names)} sequences based on pairwise progressive scoring.\n"
-    
-    # Demo heuristic: Align all against the first sequence
-    base_seq = sequences[0]
-    res += f"Reference: {names[0]} (Length {len(base_seq)})\n\n"
-    
-    for i in range(1, len(sequences)):
-        alignments = aligner.align(base_seq, sequences[i])
-        best = alignments[0]
-        res += f"> {names[i]} (Score: {best.score})\n"
-        # Just show the first 100 char summarized snippet for readability
-        snippet = str(best).split("\n")
-        res += f"{snippet[0][:100]}...\n{snippet[1][:100]}...\n{snippet[2][:100]}...\n\n"
+        # Format the fasta stdout output slightly for UI readability
+        lines = result.stdout.split('\n')
+        output = f"--- True Multiple Sequence Alignment (MAFFT) ---\n"
+        # We don't want to spit out 10,000 characters of raw multiline FASTA in a text block, 
+        # so let's summarize or just return the raw alignments block.
+        output += "\n".join(lines[:100]) # Cap at 100 lines for visual safety
+        if len(lines) > 100:
+            output += "\n... [Truncated for display] ..."
+        return output
+
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        # Fallback to Progressive Heuristic if mafft is not installed
+        res = "⚠️ 'mafft' aligner not found in environment. Falling back to Basic Progressive Heuristic...\n\n"
+        res += "--- Basic Progressive Alignment Synopsis ---\n"
         
-    return res
+        sequences = list(fasta_dict.values())
+        names = list(fasta_dict.keys())
+        res += f"Aligned {len(names)} sequences based on pairwise progressive scoring.\n"
+        
+        aligner = PairwiseAligner()
+        aligner.mode = 'global'
+        
+        # Demo heuristic: Align all against the first sequence
+        base_seq = sequences[0]
+        res += f"Reference: {names[0]} (Length {len(base_seq)})\n\n"
+        
+        for i in range(1, len(sequences)):
+            alignments = aligner.align(base_seq, sequences[i])
+            best = alignments[0]
+            res += f"> {names[i]} (Score: {best.score})\n"
+            # Just show the first 100 char summarized snippet for readability
+            snippet = str(best).split("\n")
+            res += f"{snippet[0][:100]}...\n{snippet[1][:100]}...\n{snippet[2][:100]}...\n\n"
+            
+        return res

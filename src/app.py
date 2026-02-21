@@ -14,7 +14,7 @@ from analysis_dna import calculate_gc_skew, calculate_codon_usage
 # --- Phase 2 & 3 Modules ---
 from languages import TRANSLATIONS
 from disease_data import get_disease_variants
-from structure_viewer import render_pdb
+from structure_viewer import render_pdb, render_uploaded_pdb, fetch_pdb_by_gene
 from isoform_viewer import fetch_ensembl_transcripts, plot_isoforms
 from simulator import MutationSimulator
 from alignment import perform_pairwise_alignment, perform_multiple_sequence_alignment, build_phylogenetic_tree
@@ -370,6 +370,7 @@ if st.session_state.active_id:
                 st.metric(t('seq_len'), f"{len(record.seq):,}")
             
             gc = calculate_gc_content(record.seq)
+            st.session_state.gc_content = gc
             with col2:
                 st.metric(t('gc_content'), f"{gc:.2f}%")
             
@@ -424,22 +425,47 @@ if st.session_state.active_id:
             
             col_pdb, col_viewer = st.columns([1, 4])
             with col_pdb:
+                st.markdown("**Auto-Fetch PDB**")
+                auto_fetch = st.button(f"Fetch PDB for {active_id}")
+                st.markdown("---")
+                st.markdown("**Manual PDB Search**")
                 pdb_id = st.text_input(t('pdb_input'), "1TRZ")
                 render = st.button(t('render_3d'))
                 
             with col_viewer:
-                if render and pdb_id:
-                    # from stmol import showmol
-                    # view = render_pdb(pdb_id)
-                    # showmol(view, height=500, width=800)
-                    try:
-                        from stmol import showmol
+                if 'active_pdb_id' not in st.session_state:
+                    st.session_state.active_pdb_id = None
+                if 'active_pdb_text' not in st.session_state:
+                    st.session_state.active_pdb_text = None
+
+                if auto_fetch:
+                    with st.spinner("Fetching best PDB structure matching this gene..."):
+                        fetched_id, fetched_text = fetch_pdb_by_gene(active_id)
+                        if fetched_id and fetched_text:
+                            st.session_state.active_pdb_id = fetched_id
+                            st.session_state.active_pdb_text = fetched_text
+                            st.success(f"Successfully fetched structure: **{fetched_id}**")
+                        else:
+                            st.error(f"Could not automatically locate a PDB structure for {active_id}.")
+                            st.session_state.active_pdb_id = None
+                            st.session_state.active_pdb_text = None
+
+                try:
+                    from stmol import showmol
+                    if auto_fetch and st.session_state.active_pdb_text:
+                        view = render_uploaded_pdb(st.session_state.active_pdb_text)
+                        showmol(view, height=500, width=800)
+                    elif render and pdb_id:
                         view = render_pdb(pdb_id)
                         showmol(view, height=500, width=800)
-                    except ImportError:
-                        st.error("Please install 'stmol' and 'py3Dmol' to view 3D structures.")
-                    except Exception as e:
-                         st.error(f"Error rendering PDB: {e}")
+                    elif st.session_state.active_pdb_text: # Keep it displayed on tab switch
+                        st.info(f"Showing Auto-Fetched PDB: **{st.session_state.active_pdb_id}**")
+                        view = render_uploaded_pdb(st.session_state.active_pdb_text)
+                        showmol(view, height=500, width=800)
+                except ImportError:
+                    st.error("Please install 'stmol' and 'py3Dmol' to view 3D structures.")
+                except Exception as e:
+                     st.error(f"Error rendering PDB: {e}")
 
         # Tab 4: Mutation Lab (New)
         with tabs[3]:
@@ -649,6 +675,9 @@ if st.session_state.active_id:
                 
                 if st.button(t('calc_rolling')):
                     df_ent = rolling_entropy(record.seq, window_size, 20)
+                    if not df_ent.empty:
+                        # Store median entropy in session state for AI context
+                        st.session_state.seq_entropy = df_ent['Entropy'].median()
                     chart_ent = alt.Chart(df_ent).mark_line(color='#FFA07A').encode(
                         x='Position',
                         y='Entropy'
@@ -702,10 +731,21 @@ if st.session_state.active_id:
                 # Add user message to chat history
                 st.session_state.messages.append({"role": "user", "content": prompt})
                 
+                # Bundle context for the AI
+                context = {
+                    "Gene Accession ID": active_id,
+                    "Gene Database": "Nucleotide (NCBI)",
+                    "Sequence Length (bp)": len(record.seq) if record else None,
+                    "GC Content (%)": round(st.session_state.get('gc_content', 0.0), 2) if 'gc_content' in st.session_state else None,
+                    "Median Sequence Entropy": round(st.session_state.get('seq_entropy', 0.0), 3) if 'seq_entropy' in st.session_state else None,
+                    "Selected Alignment Mode": st.session_state.get('align_mode'),
+                    "Description": record.description if record else None
+                }
+                
                 # Display assistant response in chat message container
                 with st.chat_message("assistant"):
                     with st.spinner("Thinking..."):
-                        response = get_ai_response(active_id, prompt, api_key=gemini_api_key)
+                        response = get_ai_response(active_id, prompt, api_key=gemini_api_key, context=context)
                     st.markdown(response)
                 # Add assistant response to chat history
                 st.session_state.messages.append({"role": "assistant", "content": response})
