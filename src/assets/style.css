@@ -12,10 +12,9 @@ h4,
 h5,
 h6,
 p,
-span,
-div,
-label {
-    font-family: 'Outfit', sans-serif !important;
+label,
+li {
+    font-family: 'Outfit', sans-serif;
 }
 
 /* Custom Scrollbar */

@@ -527,7 +527,29 @@ if st.session_state.active_id:
         st.error(f"{t('error_fetch')} {active_id}")
 
 elif not st.session_state.active_id:
-    st.info(t('landing_info'))
+    st.markdown("""
+    ## Welcome to the Human Genome Analysis Viewer 🧬
     
-    st.markdown(t('features_title'))
-    st.markdown(t('features_list'))
+    This application is an interactive, high-performance bioinformatics platform designed to explore, analyze, and visualize human DNA and protein sequences. Using real-time data from the NCBI databases, it allows researchers, students, and enthusiasts to delve deep into the molecular components of life.
+    
+    ### 🔬 How to start
+    To begin your analysis, use the **Gene Selection** menu in the sidebar on the left:
+    1. **Search by Name:** Enter a gene name (e.g., `TP53`, `BRCA1`, `MTHFR`) and click **Search NCBI**. Select the correct transcript from the dropdown.
+    2. **Accession ID:** If you know the exact NCBI Accession ID (e.g., `NM_000546.6`), you can enter it directly.
+    3. Click the **🚀 Analyze Sequence** button.
+    
+    ---
+    
+    ### 📑 Feature Breakdown
+    
+    Once a sequence is loaded, you will have access to the following analytical modules:
+    
+    * **📊 Overview:** A quick summary of the sequence, including its full length, GC content percentage, a visual sequence length breakdown, and our custom **Interactive Sequence Viewer** that automatically highlights Start (🟢) and Stop (🔴) codons.
+    * **🧬 DNA Structure:** Deep dive into the physical properties of the DNA. View the **Codon Usage** table and an interactive **GC Skew Analysis** chart (powered by blazing fast Polars engine) to identify putative replication origins or asymmetrical nucleotide distributions.
+    * **🧊 3D Structure:** Render and interact with 3D protein structures directly in your browser by inputting a valid PDB ID.
+    * **🧪 Mutation Lab:** A sandbox for editing the raw DNA sequence and simulating point mutations. Discover instantly if a modification results in a silent mutation, introduces a premature Stop Codon, or significantly alters the amino acid properties.
+    * **⚔️ Alignment & Trees:** Perform Multiple Sequence Alignment (MSA). Paste multiple FASTA sequences to calculate sequence distancing and automatically generate a UPGMA Phylogenetic Distance Tree.
+    * **🏥 Disease Associations:** Map known clinical variants to their specific positions on the sequence. Explore allele frequencies across different global populations and understand the clinical significance of specific SNPs.
+    * **🔍 Motifs & Entropy:** Calculate the global Shannon Entropy of the sequence to measure information complexity, plot an interactive Rolling Entropy chart, and pinpoint the exact locations of specific short sequences (Motifs).
+    * **🤖 AI Gene Assistant:** An integrated, context-aware AI assistant powered by Google Gemini. Ask it complex biological questions, request literature summaries, or have it explain specific functions of the gene you are currently analyzing.
+    """)
