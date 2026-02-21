@@ -1,10 +1,7 @@
 /* Glassmorphism & Premium CSS for Streamlit */
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
 
-/* Apply Global Font */
-html,
-body,
-[class*="st-"],
+/* Apply Global Font Safely */
 h1,
 h2,
 h3,
@@ -13,8 +10,22 @@ h5,
 h6,
 p,
 label,
-li {
+li,
+div[data-testid="stMetricValue"],
+div[data-testid="stMetricLabel"] {
     font-family: 'Outfit', sans-serif;
+}
+
+/* Explicitly restore Material Icons (fixes _arrow_right text bug) */
+.material-symbols-rounded,
+.stIcon,
+[data-testid="stIconMaterial"] {
+    font-family: 'Material Symbols Rounded', 'Material Icons' !important;
+}
+
+/* Hide the Streamlit Top Header to fix the 'streamlitApp' top-padding tooltip */
+header[data-testid="stHeader"] {
+    display: none !important;
 }
 
 /* Custom Scrollbar */
