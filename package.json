@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "ideogram": "^1.53.0",
+    "puppeteer": "^24.37.5"
+  }
+}
