@@ -37,6 +37,40 @@ def load_css():
 # Inject custom CSS
 load_css()
 
+# --- Custom Altair Theme ---
+def custom_dark_theme():
+    return {
+        "config": {
+            "background": "transparent",
+            "view": {"stroke": "transparent"},
+            "title": {"color": "#EAEAEA", "font": "Outfit", "fontSize": 16},
+            "axis": {
+                "domainColor": "#EAEAEA",
+                "gridColor": "rgba(255, 255, 255, 0.1)",
+                "tickColor": "#EAEAEA",
+                "labelColor": "#EAEAEA",
+                "titleColor": "#EAEAEA",
+                "labelFont": "Outfit",
+                "titleFont": "Outfit"
+            },
+            "legend": {
+                "labelColor": "#EAEAEA",
+                "titleColor": "#EAEAEA",
+                "labelFont": "Outfit",
+                "titleFont": "Outfit"
+            },
+            "header": {
+                "labelColor": "#EAEAEA",
+                "titleColor": "#EAEAEA",
+                "labelFont": "Outfit",
+                "titleFont": "Outfit"
+            }
+        }
+    }
+
+alt.themes.register("custom_dark", custom_dark_theme)
+alt.themes.enable("custom_dark")
+
 # --- Caching ---
 @st.cache_data(show_spinner=False)
 def get_gene_metadata_v2():

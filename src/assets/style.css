@@ -1,4 +1,41 @@
-/* Glassmorphism CSS for Streamlit */
+/* Glassmorphism & Premium CSS for Streamlit */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
+/* Apply Global Font */
+html,
+body,
+[class*="st-"],
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+span,
+div,
+label {
+    font-family: 'Outfit', sans-serif !important;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(26, 26, 46, 0.5);
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(233, 69, 96, 0.5);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(233, 69, 96, 0.8);
+}
 
 /* App background */
 .stApp {
@@ -15,7 +52,12 @@ section[data-testid="stSidebar"] {
 }
 
 /* Main headers and text colors */
-h1, h2, h3, p, span, div {
+h1,
+h2,
+h3,
+p,
+span,
+div {
     color: #EAEAEA;
 }
 
@@ -26,6 +68,13 @@ div[data-testid="stDataFrame"] {
     padding: 10px;
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+div[data-testid="stDataFrame"]:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(233, 69, 96, 0.15);
+    border-color: rgba(233, 69, 96, 0.3);
 }
 
 /* Metrics */
@@ -35,6 +84,13 @@ div[data-testid="stMetric"] {
     border-radius: 12px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
+}
+
+div[data-testid="stMetric"]:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 15px rgba(233, 69, 96, 0.2);
+    border-color: rgba(233, 69, 96, 0.3);
 }
 
 /* Expanders */
@@ -42,17 +98,33 @@ div[data-testid="stExpander"] {
     background: rgba(255, 255, 255, 0.03);
     border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+div[data-testid="stExpander"]:hover {
+    border-color: rgba(255, 255, 255, 0.3);
 }
 
 /* Inputs (Text area, text input) */
-div[data-baseweb="input"] > div, div[data-baseweb="textarea"] > div {
+div[data-baseweb="input"]>div,
+div[data-baseweb="textarea"]>div,
+div[data-baseweb="select"]>div {
     background-color: rgba(255, 255, 255, 0.05) !important;
     border: 1px solid rgba(255, 255, 255, 0.2) !important;
     color: white !important;
     border-radius: 8px;
+    transition: all 0.3s ease;
 }
 
-div[data-baseweb="input"] input, div[data-baseweb="textarea"] textarea {
+div[data-baseweb="input"]>div:focus-within,
+div[data-baseweb="textarea"]>div:focus-within,
+div[data-baseweb="select"]>div:focus-within {
+    border-color: #E94560 !important;
+    box-shadow: 0 0 10px rgba(233, 69, 96, 0.3);
+}
+
+div[data-baseweb="input"] input,
+div[data-baseweb="textarea"] textarea {
     color: white !important;
 }
 
@@ -69,16 +141,34 @@ button[data-testid="baseButton-primary"]:hover {
     box-shadow: 0 6px 20px rgba(233, 69, 96, 0.6);
 }
 
+button[data-testid="baseButton-secondary"] {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+}
+
+button[data-testid="baseButton-secondary"]:hover {
+    border-color: #E94560;
+    color: #E94560;
+    box-shadow: 0 0 10px rgba(233, 69, 96, 0.2);
+}
+
 /* Tabs */
 button[data-baseweb="tab"] {
     background: transparent !important;
     color: #A0A0A0 !important;
+    font-weight: 500;
+}
+
+button[data-baseweb="tab"]:hover {
+    color: #FFFFFF !important;
 }
 
 button[data-baseweb="tab"][aria-selected="true"] {
     color: #E94560 !important;
-    font-weight: bold;
+    font-weight: 700;
     border-bottom-color: #E94560 !important;
+    text-shadow: 0 0 10px rgba(233, 69, 96, 0.3);
 }
 
 /* Info, Success, Warning boxes */
