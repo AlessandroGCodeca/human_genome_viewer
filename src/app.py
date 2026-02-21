@@ -310,21 +310,25 @@ if st.session_state.active_id:
                           setTimeout(initIdeogram, 50);
                           return;
                       }}
+                      const startBp = Math.min({start}, {stop});
+                      const stopBp = Math.max({start}, {stop});
                       const config = {{
                         organism: 'human',
+                        chromosome: '{chrom}',
+                        orientation: 'horizontal',
                         container: '#ideo-container',
                         chrWidth: 15,
-                        chrHeight: 400,
+                        chrHeight: 600,
                         chrMargin: 10,
                         showChromosomeLabels: true,
                         annotations: [{{
                             name: '{record.id}',
                             chr: '{chrom}',
-                            start: {start},
-                            stop: {stop}
+                            start: startBp,
+                            stop: stopBp,
+                            color: '#E94560'
                         }}],
-                        annotationHeight: 5,
-                        annotationColor: '#E94560'
+                        annotationHeight: 5
                       }};
                       new Ideogram(config);
                   }}
