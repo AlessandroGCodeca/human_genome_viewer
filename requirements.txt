@@ -12,3 +12,6 @@ polars
 scikit-learn
 streamlit-lottie
 requests
+plotly
+networkx
+tenacity
