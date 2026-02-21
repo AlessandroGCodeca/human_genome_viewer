@@ -114,10 +114,18 @@ class SequenceFetcher:
                 chrom = doc.get("Chromosome", "")
                 map_loc = doc.get("MapLocation", "")
                 
+                start = None
+                stop = None
+                genomic_info = doc.get("GenomicInfo", [])
+                if genomic_info and len(genomic_info) > 0:
+                    info = genomic_info[0]
+                    start = info.get("ChrStart")
+                    stop = info.get("ChrStop")
+                    
                 if chrom and map_loc:
-                    return str(chrom), str(map_loc)
+                    return str(chrom), str(map_loc), start, stop
             
-            return None, None
+            return None, None, None, None
             
         except HTTPError as e:
             print(f"HTTP Error fetching location for {accession_id}: {e}")

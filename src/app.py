@@ -202,13 +202,17 @@ if st.session_state.active_id:
             record = fetch_sequence_cached(active_id)
             # Fetch Chromosome automatically for ideogram
             f = SequenceFetcher()
-            chrom, loc = f.fetch_gene_location(active_id)
+            chrom, loc, start, stop = f.fetch_gene_location(active_id)
             st.session_state.active_chrom = chrom
             st.session_state.active_loc = loc
+            st.session_state.active_start = start
+            st.session_state.active_stop = stop
         except Exception:
             record = None
             st.session_state.active_chrom = None
             st.session_state.active_loc = None
+            st.session_state.active_start = None
+            st.session_state.active_stop = None
             
         # Clear the lottie animation container once data is fetched
         lottie_container.empty()
@@ -217,13 +221,17 @@ if st.session_state.active_id:
             try:
                 record = fetch_sequence_cached(active_id)
                 f = SequenceFetcher()
-                chrom, loc = f.fetch_gene_location(active_id)
+                chrom, loc, start, stop = f.fetch_gene_location(active_id)
                 st.session_state.active_chrom = chrom
                 st.session_state.active_loc = loc
+                st.session_state.active_start = start
+                st.session_state.active_stop = stop
             except Exception:
                 record = None
                 st.session_state.active_chrom = None
                 st.session_state.active_loc = None
+                st.session_state.active_start = None
+                st.session_state.active_stop = None
 
     if record:
         # Summary Box
@@ -286,35 +294,44 @@ if st.session_state.active_id:
             
             chrom = st.session_state.get('active_chrom')
             loc = st.session_state.get('active_loc')
+            start = st.session_state.get('active_start')
+            stop = st.session_state.get('active_stop')
             
-            if chrom and loc:
+            if chrom and start and stop:
                 st.caption(f"Mapped to Chromosome **{chrom}** at cytoband **{loc}**")
                 # Ideogram.js HTML Block
-                # Clean up loc to just the cytoband part if it includes chromosome e.g. "17p13.1" -> "p13.1"
-                # But ideogram actually accepts the full string in 'band' or 'chr' + 'band'.
                 ideogram_html = f"""
-                <div id="ideo-container" style="width: 100%; display: flex; justify-content: center; overflow-x: auto;"></div>
-                <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/ideogram@1.41.0/dist/js/ideogram.min.js"></script>
+                <div id="ideo-container" style="width: 100%; display: flex; justify-content: center; overflow-x: auto; min-height: 400px;"></div>
                 <script type="text/javascript">
-                  const config = {{
-                    organism: 'human',
-                    container: '#ideo-container',
-                    chrWidth: 15,
-                    chrHeight: 400,
-                    chrMargin: 10,
-                    showChromosomeLabels: true,
-                    annotations: [{{
-                        name: '{record.id}',
-                        chr: '{chrom}',
-                        targets: ['{loc}']
-                    }}],
-                    annotationHeight: 5,
-                    annotationColor: '#E94560'
-                  }};
-                  const ideogram = new Ideogram(config);
+                  function initIdeogram() {{
+                      if (typeof Ideogram === 'undefined') {{
+                          setTimeout(initIdeogram, 50);
+                          return;
+                      }}
+                      const config = {{
+                        organism: 'human',
+                        container: '#ideo-container',
+                        chrWidth: 15,
+                        chrHeight: 400,
+                        chrMargin: 10,
+                        showChromosomeLabels: true,
+                        annotations: [{{
+                            name: '{record.id}',
+                            chr: '{chrom}',
+                            start: {start},
+                            stop: {stop}
+                        }}],
+                        annotationHeight: 5,
+                        annotationColor: '#E94560'
+                      }};
+                      new Ideogram(config);
+                  }}
                 </script>
+                <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/ideogram@1.41.0/dist/js/ideogram.min.js" onload="initIdeogram()"></script>
                 """
                 components.html(ideogram_html, height=450, scrolling=False)
+            elif chrom and loc:
+                st.info(f"Chromosome mapping found for **{chrom}** at **{loc}**, but exact start/stop coordinates are missing from NCBI.")
             else:
                 st.info("Chromosome mapping not available for this transcript.")
             
