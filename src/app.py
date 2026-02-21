@@ -15,6 +15,7 @@ from analysis_dna import calculate_gc_skew, calculate_codon_usage
 from languages import TRANSLATIONS
 from disease_data import get_disease_variants
 from structure_viewer import render_pdb
+from isoform_viewer import fetch_ensembl_transcripts, plot_isoforms
 from simulator import MutationSimulator
 from alignment import perform_pairwise_alignment
 from ai_assistant import get_ai_response
@@ -262,12 +263,13 @@ if st.session_state.active_id:
         tabs = st.tabs([
             t('tab_overview'), 
             t('tab_dna'), 
-            t('tab_3d'),      # New
-            t('tab_mutation'), # New
-            t('tab_align'),    # New
+            t('tab_3d'),
+            t('tab_mutation'),
+            t('tab_align'),
             t('tab_disease'),
+            "🧬 Isoforms", # New Isoform tab
             t('tab_advanced'),
-            t('tab_ai')        # AI Assistant
+            t('tab_ai')
         ])
 
         # Tab 1: Overview
@@ -527,8 +529,46 @@ if st.session_state.active_id:
             else:
                 st.warning(f"No mock disease data available for gene {record.id}. Try searching for 'Insulin' (NM_000014).")
 
-        # Tab 7: Advanced
-        with tabs[6]: # Shifted index
+        # Tab 7: Isoforms
+        with tabs[6]:
+            st.subheader("Protein-Coding Isoforms (Transcript Variants)")
+            st.markdown("Genes can produce multiple different proteins through alternative splicing. This chart shows the exon structure of all known protein-coding transcripts for this gene.")
+            
+            # Extract gene symbol (e.g. from TP53 | tumor protein...)
+            gene_symbol = None
+            if st.session_state.get('ncbi_search_results'):
+                for r in st.session_state.ncbi_search_results:
+                    if r['ID'] == active_id:
+                        # usually the query was the gene name, or we can guess from description
+                        gene_symbol = r['Description'].split()[0]
+                        break
+            
+            # If we don't have it mapped, try to extract from description
+            if not gene_symbol:
+                desc_parts = record.description.split()
+                if len(desc_parts) > 1 and "(" in record.description:
+                    # e.g Homo sapiens tumor protein p53 (TP53)
+                    import re
+                    match = re.search(r'\((.*?)\)', record.description)
+                    if match:
+                        gene_symbol = match.group(1).split(',')[0] # get first if multiple
+            
+            if gene_symbol:
+                with st.spinner("Fetching transcript structures from Ensembl..."):
+                    df_iso = fetch_ensembl_transcripts(gene_symbol)
+                    
+                if df_iso is not None and not df_iso.empty:
+                    chart_iso = plot_isoforms(df_iso)
+                    if chart_iso:
+                        st.altair_chart(chart_iso, use_container_width=True)
+                    st.dataframe(df_iso, use_container_width=True)
+                else:
+                    st.warning(f"Could not find isoform data for gene '{gene_symbol}' on Ensembl.")
+            else:
+                st.warning("Could not automatically determine Gene Symbol from the current record to query Ensembl. Try searching by Name instead of Accession.")
+                
+        # Tab 8: Advanced
+        with tabs[7]: # Shifted index
             col_ent, col_mot = st.columns(2)
             # ... (Existing Advanced content)
             with col_ent:
@@ -555,8 +595,8 @@ if st.session_state.active_id:
                     else:
                         st.warning(t('not_found'))
 
-        # Tab 8: AI Assistant
-        with tabs[7]:
+        # Tab 9: AI Gene Assistant
+        with tabs[8]:
             st.subheader(t('tab_ai'))
             
             gemini_api_key = st.text_input("Enter your Google Gemini API Key:", type="password", key="gemini_key_input")
