@@ -675,7 +675,7 @@ if st.session_state.active_id:
                 
                 if st.button(t('calc_rolling')):
                     df_ent = rolling_entropy(record.seq, window_size, 20)
-                    if not df_ent.empty:
+                    if not df_ent.is_empty():
                         # Store median entropy in session state for AI context
                         st.session_state.seq_entropy = df_ent['Entropy'].median()
                     chart_ent = alt.Chart(df_ent).mark_line(color='#FFA07A').encode(
